@@ -14,6 +14,7 @@
     "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
     "dev:api": "npm run dev -w @nexora/api",
     "dev:web": "npm run dev -w @nexora/web",
+    "serve:lan": "npm run build -w @nexora/web && npm run preview -w @nexora/web",
     "build": "npm run build -w @nexora/api && npm run build -w @nexora/web",
     "typecheck": "npm run typecheck -w @nexora/shared && npm run typecheck -w @nexora/db && npm run typecheck -w @nexora/api && npm run typecheck -w @nexora/web",
     "lint": "eslint .",

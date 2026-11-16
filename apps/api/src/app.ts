@@ -81,11 +81,32 @@ export function createApp({ db, config }: AppDeps): Express {
   });
 
   // CSRF: same-origin check plus a required client header on every mutation.
+  const isAllowedOrigin = (origin: string): boolean => {
+    if (config.webOrigins.includes(origin)) return true;
+    // LAN/tablet development: accept private-network origins only when the API
+    // is running in development/test. Production stays on the exact allowlist.
+    if (config.isProd) return false;
+    try {
+      const url = new URL(origin);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+      return (
+        url.hostname === 'localhost' ||
+        url.hostname === '127.0.0.1' ||
+        url.hostname === '::1' ||
+        /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(url.hostname) ||
+        /^192\.168\.\d{1,3}\.\d{1,3}$/.test(url.hostname) ||
+        /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(url.hostname)
+      );
+    } catch {
+      return false;
+    }
+  };
+
   app.use((req, _res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
     if (req.path.startsWith('/api/payments/webhook/')) return next();
     const origin = req.headers.origin;
-    if (origin && origin !== config.webOrigin) {
+    if (origin && !isAllowedOrigin(origin)) {
       return next(new NexoraError('AUTH_PERMISSION_DENIED', { reason: 'origin' }));
     }
     if (req.headers['x-nexora-client'] !== 'web') {

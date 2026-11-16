@@ -18,6 +18,7 @@ const config: Config = {
   sessionSecret: 'test-secret-that-is-long-enough-for-hmac-222',
   port: 0,
   webOrigin: 'http://localhost:5173',
+  webOrigins: ['http://localhost:5173'],
   logLevel: 'error',
 };
 

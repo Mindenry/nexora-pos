@@ -50,11 +50,25 @@ PostgreSQL 18 with `nexora_dev` and `nexora_test`. If you recreate it, create th
 role/databases first, then run the migrations. Backups require the separate
 `nexora_backup` BYPASSRLS role described in `docs/OPERATIONS.md`.
 
+### Open on iPad / another device
+
+```powershell
+ipconfig                     # note the IPv4 address, e.g. 192.168.1.107
+npm run serve:lan            # API must already be running (npm run dev:api)
+```
+
+Then open `http://<IPv4>:5173` on the tablet. Allow Node.js / TCP 5173 through
+Windows Firewall if prompted. In development, private-LAN origins are accepted
+for login; production still requires an exact `WEB_ORIGIN`/`WEB_ORIGINS` list.
+If the tablet still cannot connect, check that both devices are on the same
+Wi-Fi and that the router does not enable AP/client isolation.
+
 ## Scripts
 
 | Command | Purpose |
 | --- | --- |
 | `npm run dev` | API + web in watch mode |
+| `npm run serve:lan` | Build the SPA and serve it on `0.0.0.0:5173` for iPad/LAN testing |
 | `npm run build` | Bundle API and build SPA |
 | `npm run typecheck` | Strict TypeScript across workspaces |
 | `npm run lint` | ESLint |

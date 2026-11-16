@@ -24,6 +24,7 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32, 'SESSION_SECRET must be at least 32 characters'),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
+  WEB_ORIGINS: z.string().optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   PROMPTPAY_ENCRYPTION_KEY: z.string().optional(),
 });
@@ -35,6 +36,7 @@ export interface Config {
   sessionSecret: string;
   port: number;
   webOrigin: string;
+  webOrigins: string[];
   logLevel: 'debug' | 'info' | 'warn' | 'error';
   promptpayEncryptionKey?: string;
 }
@@ -53,6 +55,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     sessionSecret: value.SESSION_SECRET,
     port: value.API_PORT,
     webOrigin: value.WEB_ORIGIN,
+    webOrigins: [...new Set([
+      value.WEB_ORIGIN,
+      ...(value.WEB_ORIGINS ?? '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
+    ])],
     logLevel: value.LOG_LEVEL,
     promptpayEncryptionKey: value.PROMPTPAY_ENCRYPTION_KEY,
   };
