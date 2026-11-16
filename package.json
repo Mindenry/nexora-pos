@@ -1,0 +1,38 @@
+{
+  "name": "nexora-pos",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev -w @nexora/api",
+    "dev:web": "npm run dev -w @nexora/web",
+    "build": "npm run build -w @nexora/api && npm run build -w @nexora/web",
+    "typecheck": "npm run typecheck -w @nexora/shared && npm run typecheck -w @nexora/db && npm run typecheck -w @nexora/api && npm run typecheck -w @nexora/web",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:migrate": "tsx packages/db/src/migrate.ts",
+    "db:seed": "tsx apps/api/src/seed.ts",
+    "db:reset": "tsx scripts/db-reset.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.9.1",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.38.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+.db-credential
+.db-credential-backup
+.pgdata/
+backups/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+.vite/
+.eslintcache

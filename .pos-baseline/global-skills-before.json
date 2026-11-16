@@ -1,0 +1,410 @@
+﻿[
+    {
+        "id":  "audio-design",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\audio-design\\SKILL.md",
+        "sha256":  "3526D25DD1B8C4A33D5D0F9682DF510CE09322E1DCFF55D760A9BDCFEB75810C",
+        "bytes":  11643
+    },
+    {
+        "id":  "brainstorming",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\brainstorming\\SKILL.md",
+        "sha256":  "2C9CA71F94886F9CA9F4AEF055F7CAFB3E1A9BDF3AEEBF8F4CB547C69405D207",
+        "bytes":  15190
+    },
+    {
+        "id":  "camera-systems",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\camera-systems\\SKILL.md",
+        "sha256":  "D9BEA3A76E0D50F43232DEBF8F3682DD9FBA20E27AC5D0B55C0F1F1CCC580A12",
+        "bytes":  10592
+    },
+    {
+        "id":  "create-game-assets",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\create-game-assets\\SKILL.md",
+        "sha256":  "CB26989F0079F50D7B64056F88A997172745E9A234B7320CEEA0B2D012BF690D",
+        "bytes":  12828
+    },
+    {
+        "id":  "database-migration",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\database-migration\\SKILL.md",
+        "sha256":  "966DA67ABB7A43851E4FE3ED2AF8C74D74703715230CCB23ED33589C42E9966A",
+        "bytes":  8488
+    },
+    {
+        "id":  "design-taste-frontend",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\design-taste-frontend\\SKILL.md",
+        "sha256":  "DFD1190ACB78995C35294BC8BDD36AA14CE54AEE9B0707CE9D6D12524209721F",
+        "bytes":  31351
+    },
+    {
+        "id":  "dialogue-systems",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\dialogue-systems\\SKILL.md",
+        "sha256":  "DC308CF6A7AA9706D99F4F81DC8D3D0840012C0FEEE8996E3D28C65628522997",
+        "bytes":  10168
+    },
+    {
+        "id":  "dispatching-parallel-agents",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\dispatching-parallel-agents\\SKILL.md",
+        "sha256":  "1968923066F3B707EB01D1992CDF4C42284C3855F70253B9CD5000FF45FCA13C",
+        "bytes":  6078
+    },
+    {
+        "id":  "executing-plans",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\executing-plans\\SKILL.md",
+        "sha256":  "DEAF176FA179827E80F2EA3101DB3EA90FDF562EBEF340EBA761E4687940F5F5",
+        "bytes":  18364
+    },
+    {
+        "id":  "find-skills",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\find-skills\\SKILL.md",
+        "sha256":  "C00EEEA0E13E74FE4A9D84BA0A8542205A1B736D65F13134FE1A6647EB14976F",
+        "bytes":  5472
+    },
+    {
+        "id":  "frontend-design",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\frontend-design\\SKILL.md",
+        "sha256":  "B8009AE690DFA69EDC7F08BB8715F32DB8817112CFA4388741DBAF876C237DF8",
+        "bytes":  9461
+    },
+    {
+        "id":  "game-ai",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\game-ai\\SKILL.md",
+        "sha256":  "C887B81193036B877977B902A6E57D5276D257D6F1DFE54E9D51F66CE6C2CEF9",
+        "bytes":  8060
+    },
+    {
+        "id":  "game-balance",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\game-balance\\SKILL.md",
+        "sha256":  "FF6587525F5280F98C63697D6A76968FDFD4021ABE58B14719AA4F8AEA839ED8",
+        "bytes":  15044
+    },
+    {
+        "id":  "game-feel",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\game-feel\\SKILL.md",
+        "sha256":  "4784ADDF5BD3F02C0EC3FA11A97B5BADDD89F5B281BAB9D3253439F2B8E7732D",
+        "bytes":  9758
+    },
+    {
+        "id":  "game-mechanics-design",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\game-mechanics-design\\SKILL.md",
+        "sha256":  "E19A5E461CA748780BFF913C5D0D7ABF97A9B00DF74586A45E46C362830A7829",
+        "bytes":  8087
+    },
+    {
+        "id":  "game-systems-design",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\game-systems-design\\SKILL.md",
+        "sha256":  "D2F5C0289334CE761DD5B98C68469B3E3101F0AB3F0DBD2BB408D003234D6F90",
+        "bytes":  13132
+    },
+    {
+        "id":  "game-ui-ux",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\game-ui-ux\\SKILL.md",
+        "sha256":  "AFE34B6A918BD7CC0D245970CC52EC5145E09DFA1985D95311EF1E3B43856E78",
+        "bytes":  10612
+    },
+    {
+        "id":  "gamedev-math",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\gamedev-math\\SKILL.md",
+        "sha256":  "C8EE9C9BC3F3CEB2D2B0773D0A7A536C9AEC1B1BF6B13C2385CBDE14BA472EDE",
+        "bytes":  8668
+    },
+    {
+        "id":  "godot-2d-gameplay",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-2d-gameplay\\SKILL.md",
+        "sha256":  "9B4A9F85F9878C565E3E0D4FD5EC2C3F717BDD1F7697FEED1164FAF9D5FA93FF",
+        "bytes":  8951
+    },
+    {
+        "id":  "godot-animation",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-animation\\SKILL.md",
+        "sha256":  "BEEA73F36AA8861D9078B11D2EFD742B3A0DCDEC7A59C8F50EDC9DB5B245C68A",
+        "bytes":  8087
+    },
+    {
+        "id":  "godot-audio",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-audio\\SKILL.md",
+        "sha256":  "FE002B2D60A86D26F8A0CC2CCE7D1224F5C5C0906D81DD4100BDAE8DCCC49773",
+        "bytes":  7380
+    },
+    {
+        "id":  "godot-export",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-export\\SKILL.md",
+        "sha256":  "A74049AD4582F59B3482FE87DFB382F96A3090BFF97C7AC13EB8FF05780A5C15",
+        "bytes":  7506
+    },
+    {
+        "id":  "godot-fundamentals",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-fundamentals\\SKILL.md",
+        "sha256":  "F494C30B6F757C3486F0BE813C840CAC9704D1EEAFED08B449593B4272BF2283",
+        "bytes":  8848
+    },
+    {
+        "id":  "godot-game-architecture",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-game-architecture\\SKILL.md",
+        "sha256":  "CB5FCEBACBEB1DD85F4876A1390596FDA4665D355BBD1D9623C39B91810050A0",
+        "bytes":  9741
+    },
+    {
+        "id":  "godot-gdscript",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-gdscript\\SKILL.md",
+        "sha256":  "B6956011D791203B8BD52A6579AF089491C052E958A1BDBC5F086C43FD67A149",
+        "bytes":  7680
+    },
+    {
+        "id":  "godot-gdscript-headless-testing",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-gdscript-headless-testing\\SKILL.md",
+        "sha256":  "5F2F566EA08F604221CB4957BC39D40C926D4DC02F0FDB6CF9CD11CE146FCBD4",
+        "bytes":  7943
+    },
+    {
+        "id":  "godot-multiplayer",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-multiplayer\\SKILL.md",
+        "sha256":  "988462C3D0559D85F5D272B1E75E590593DD3312241B09694CFB71C05FB63599",
+        "bytes":  10935
+    },
+    {
+        "id":  "godot-nodes-scenes",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-nodes-scenes\\SKILL.md",
+        "sha256":  "8717FBEC3AB9AC1AC1A69A1A0732FC5B7CE1DE06E9A71ADF4DC79BB4C42B4621",
+        "bytes":  9015
+    },
+    {
+        "id":  "godot-physics",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-physics\\SKILL.md",
+        "sha256":  "204A6809A8A62DEB445DCBE605BE10028A4E6F6DA373BCAFF7E2E5B5B704FC7E",
+        "bytes":  10876
+    },
+    {
+        "id":  "godot-procedural-generation",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-procedural-generation\\SKILL.md",
+        "sha256":  "63030FC7B270926C83556366C0E938E71F23813F79B76CA064B4F65CA78F873D",
+        "bytes":  7719
+    },
+    {
+        "id":  "godot-programming-patterns",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-programming-patterns\\SKILL.md",
+        "sha256":  "C6C611FD4C9FA2F0F1F3B527DEF88F2771D28D7D73827C5AED8D889A123B4601",
+        "bytes":  8804
+    },
+    {
+        "id":  "godot-resources",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-resources\\SKILL.md",
+        "sha256":  "C511767FF20C480DACB8DBB4076F07879E6EED549CABECE862A6F92B4BE916D4",
+        "bytes":  7991
+    },
+    {
+        "id":  "godot-shaders",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-shaders\\SKILL.md",
+        "sha256":  "7368BFB2D7C8A94243DB506EED43423688F0C4610B2B5E2308E1B3E520BA606A",
+        "bytes":  9431
+    },
+    {
+        "id":  "godot-signals-groups",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-signals-groups\\SKILL.md",
+        "sha256":  "73EB8CAB8DEEFA6D45C8071460CFBE2C5750D65471A5B759852028E8A84CD342",
+        "bytes":  8206
+    },
+    {
+        "id":  "godot-tilemap",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-tilemap\\SKILL.md",
+        "sha256":  "97A1744FC31864689097F439A6FB7A81CAF56A5FBFAC9D31CFC1BC87B75B5E6E",
+        "bytes":  9467
+    },
+    {
+        "id":  "godot-ui",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-ui\\SKILL.md",
+        "sha256":  "C1000906AD1DA5EA2FF9CBA61992DEE1D13F75EE8CC57E6F2C6415610026E449",
+        "bytes":  9109
+    },
+    {
+        "id":  "godot-ui-control",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\godot-ui-control\\SKILL.md",
+        "sha256":  "091DB6A55C21E4F4282827A179AD1FEBA43C7EAB01FBB891C2D55F63249BDF7D",
+        "bytes":  10103
+    },
+    {
+        "id":  "impeccable",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\impeccable\\SKILL.md",
+        "sha256":  "42B5A68857C8651B5BDDFE748ABF2F8AFFBBB64C4D7633E36BAD2DD7250A9145",
+        "bytes":  12856
+    },
+    {
+        "id":  "input-systems",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\input-systems\\SKILL.md",
+        "sha256":  "443D2C575FAB06E8E3B90A3D39A0BA8CE24B93693A31A7B5A9DFCFC992F73636",
+        "bytes":  14042
+    },
+    {
+        "id":  "level-design",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\level-design\\SKILL.md",
+        "sha256":  "C7EE1D53E6AACC528E95BFE82205B094B66078AB00FEBCC605A197F47284E534",
+        "bytes":  12587
+    },
+    {
+        "id":  "performance-optimization",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\performance-optimization\\SKILL.md",
+        "sha256":  "A5E0D0FAE132ED0ED9B5E1686454E69827D24D27281FE0D0F978B88231EDDC46",
+        "bytes":  12797
+    },
+    {
+        "id":  "physics-tuning",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\physics-tuning\\SKILL.md",
+        "sha256":  "131A0773E58BEA125166A0F948B4508EB4476346C299F93CC2B8A1E767DC3954",
+        "bytes":  12268
+    },
+    {
+        "id":  "playwright-best-practices",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\playwright-best-practices\\SKILL.md",
+        "sha256":  "5CC781C28740F7E04FD124147591A0550EA2D7B85A70E5866484E3EF40E4370A",
+        "bytes":  26609
+    },
+    {
+        "id":  "procedural-gen",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\procedural-gen\\SKILL.md",
+        "sha256":  "3C93516E33DCC771621EBFB0A8A23DD1FBC949480D9FD3E1AC04A1AD656ECE33",
+        "bytes":  11072
+    },
+    {
+        "id":  "product-manager",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\product-manager\\SKILL.md",
+        "sha256":  "55728A6B1F6AA3FFDBA25CA8BBDB77FEA3E35693BCE281543F2D81F11D39A1C9",
+        "bytes":  4801
+    },
+    {
+        "id":  "prototype-fast",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\prototype-fast\\SKILL.md",
+        "sha256":  "7331CF86B78A63C222DDE94DB3ABCCC01821FAEB663AE541649861C06E371533",
+        "bytes":  6101
+    },
+    {
+        "id":  "router",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\router\\SKILL.md",
+        "sha256":  "267E0668832189A6489824EDBBFC7455CBD9DE7197644EE4B1560F2242E87EDE",
+        "bytes":  29237
+    },
+    {
+        "id":  "rpg",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\rpg\\SKILL.md",
+        "sha256":  "1F10B714E96ABEFDE03C5AB3C54A9B68C736F23431B4A0BE6639F7038607D471",
+        "bytes":  7612
+    },
+    {
+        "id":  "save-systems",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\save-systems\\SKILL.md",
+        "sha256":  "D25A71C2F09776A47149062C814A66E3DFB78DB5AAB034320AB37C15182F6C28",
+        "bytes":  12411
+    },
+    {
+        "id":  "security-audit",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\security-audit\\SKILL.md",
+        "sha256":  "2A68AB5531DFCCEDAC2B054E0814F2B6517DAAE9887B3EE40AFCC5D8A7063C3A",
+        "bytes":  22218
+    },
+    {
+        "id":  "shadcn",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\shadcn\\SKILL.md",
+        "sha256":  "5F0CD17C76C7D2C4FDCEC111E12F1FF08D32A12EC3E4547EFD000B5F8A7E4D9D",
+        "bytes":  21902
+    },
+    {
+        "id":  "shader-programming",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\shader-programming\\SKILL.md",
+        "sha256":  "F18E7EF13B3E6BABFF1A2138A0A1EDB0D665A70D833541B68F3E6D5A1165E3A1",
+        "bytes":  10048
+    },
+    {
+        "id":  "skill-creator",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\skill-creator\\SKILL.md",
+        "sha256":  "E030E7685E26283B4A76F5202AA3AE8516FB41DDE799BE5AE8EA6393EC009FE9",
+        "bytes":  33653
+    },
+    {
+        "id":  "steam-publish",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\steam-publish\\SKILL.md",
+        "sha256":  "BA6ED1E423BFBF859E2C9DA80BC0B1E9227AB443F561811206A06C9D7FD30FC3",
+        "bytes":  14998
+    },
+    {
+        "id":  "subagent-driven-development",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\subagent-driven-development\\SKILL.md",
+        "sha256":  "1BAF70E307BDE682C462513C86116333F1F066168C6710F45145BF5F0B00828D",
+        "bytes":  19740
+    },
+    {
+        "id":  "supabase-postgres-best-practices",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\supabase-postgres-best-practices\\SKILL.md",
+        "sha256":  "4D7D1BD60F2AD7FD0D510269279519059DCC630D832F4C241D90735244C70525",
+        "bytes":  3295
+    },
+    {
+        "id":  "survival-crafting",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\survival-crafting\\SKILL.md",
+        "sha256":  "E1922912B9C032C89F0D16059935FBB916DC155F4F8ADFBF67919499E9BEF3EA",
+        "bytes":  7384
+    },
+    {
+        "id":  "systematic-debugging",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\systematic-debugging\\SKILL.md",
+        "sha256":  "51C6435D98C83C42C96BA7C35725A0B2C376CD487FB1A4E6BD0DDBE7E33EF202",
+        "bytes":  9530
+    },
+    {
+        "id":  "tailwind-design-system",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\tailwind-design-system\\SKILL.md",
+        "sha256":  "DC3723EF5DB351FF9BD725F121789A4B30C7E73109C6546D7787D7563474D4D6",
+        "bytes":  5476
+    },
+    {
+        "id":  "test-driven-development",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\test-driven-development\\SKILL.md",
+        "sha256":  "64B03FCE4AEE5A97A93160CEA8111F3BA13A17B7C001DB4BD5836D67FD10705D",
+        "bytes":  9578
+    },
+    {
+        "id":  "typescript-advanced-types",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\typescript-advanced-types\\SKILL.md",
+        "sha256":  "696B98D5A6F90A7D0F0797C6E24590DEDA11C42DAB620C3F93C1D2BEFCCBD7BB",
+        "bytes":  8353
+    },
+    {
+        "id":  "ui-ux-pro-max",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\ui-ux-pro-max\\SKILL.md",
+        "sha256":  "763BCE6C912863996D78A00195B5EF2B12626CAEF42D7E006D4E2CAE67E531C0",
+        "bytes":  18883
+    },
+    {
+        "id":  "vercel-composition-patterns",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\vercel-composition-patterns\\SKILL.md",
+        "sha256":  "E38E0EAA609316B10423A9A138ED95E35099ACCD3F735585295C8A8F165C28A3",
+        "bytes":  2886
+    },
+    {
+        "id":  "vercel-react-best-practices",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\vercel-react-best-practices\\SKILL.md",
+        "sha256":  "71ED7794962FA6E803EE83030517B5B93A9F70FBFEB431EC4535C5480A8D8355",
+        "bytes":  7251
+    },
+    {
+        "id":  "verification-before-completion",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\verification-before-completion\\SKILL.md",
+        "sha256":  "2BEFE7FC55BCADAA3D97DD9E8EFEB633D2561C0EBE74C5A8B17C4D9E7E4520B3",
+        "bytes":  3646
+    },
+    {
+        "id":  "web-design-guidelines",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\web-design-guidelines\\SKILL.md",
+        "sha256":  "F4647CA866A3ACCF763777F83E7682954F0187CD6BEA7EEA0399796652414E8F",
+        "bytes":  1231
+    },
+    {
+        "id":  "webapp-testing",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\webapp-testing\\SKILL.md",
+        "sha256":  "8BC27790F6E6DFC2BFA6692326D4518BAACF6A31DCC646D963C729ADAD2F7E34",
+        "bytes":  4008
+    },
+    {
+        "id":  "writing-plans",
+        "path":  "C:\\Users\\Administrator\\.agents\\skills\\writing-plans\\SKILL.md",
+        "sha256":  "A6C67C1900064347C2A329990DD3C555657C51C3EC53B259A08AA01A2C26139A",
+        "bytes":  10335
+    }
+]

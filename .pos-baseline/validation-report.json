@@ -1,0 +1,894 @@
+{
+  "root": "E:\\Code\\POS\\.agents\\skills",
+  "expected": [
+    "pos-domain-expert",
+    "pos-sales-checkout",
+    "pos-inventory-management",
+    "pos-payment-reconciliation",
+    "pos-shift-cash-management",
+    "pos-offline-sync-engine",
+    "pos-multi-tenant-saas",
+    "pos-thailand-commerce",
+    "pos-customer-loyalty",
+    "pos-profit-intelligence",
+    "pos-hardware-integration",
+    "pos-backup-recovery"
+  ],
+  "found": [
+    "pos-backup-recovery",
+    "pos-customer-loyalty",
+    "pos-domain-expert",
+    "pos-hardware-integration",
+    "pos-inventory-management",
+    "pos-multi-tenant-saas",
+    "pos-offline-sync-engine",
+    "pos-payment-reconciliation",
+    "pos-profit-intelligence",
+    "pos-sales-checkout",
+    "pos-shift-cash-management",
+    "pos-thailand-commerce"
+  ],
+  "missing": [],
+  "unexpected": [],
+  "global_collisions": [],
+  "skills": [
+    {
+      "id": "pos-backup-recovery",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-backup-recovery\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-backup-recovery",
+        "description": "Designs POS backup and disaster recovery: RPO/RTO by tier, PostgreSQL PITR and base backups, object storage and document retention, device local-data protection, secret recovery, per-tenant restore, immutable/offsite copies, and restore drills with verification. Use for \"backup strategy\", \"restore the database\", ransomware, deleted sales, disaster recovery plan, or \"how much data can we lose\". Not for routine schema migrations (pos-multi-tenant-saas) or data model design (pos-domain-expert).\n"
+      },
+      "description": "designs pos backup and disaster recovery: rpo/rto by tier, postgresql pitr and base backups, object storage and document retention, device local-data protection, secret recovery, per-tenant restore, immutable/offsite copies, and restore drills with verification. use for \"backup strategy\", \"restore the database\", ransomware, deleted sales, disaster recovery plan, or \"how much data can we lose\". not for routine schema migrations (pos-multi-tenant-saas) or data model design (pos-domain-expert).",
+      "headings": [
+        "POS backup & recovery",
+        "When to use",
+        "Define the targets first",
+        "What must be backed up",
+        "Backup architecture",
+        "PostgreSQL PITR specifics",
+        "base backup (physical, streaming)",
+        "archive WAL",
+        "recovery target",
+        "Per-tenant restore (shared schema)",
+        "Workflow: design backups for a POS stack",
+        "Error handling",
+        "Device-side data",
+        "Restore runbook (tier 0)",
+        "DR scenarios",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-domain-expert",
+        "pos-multi-tenant-saas",
+        "pos-offline-sync-engine",
+        "pos-payment-reconciliation",
+        "pos-shift-cash-management",
+        "pos-thailand-commerce"
+      ],
+      "lines": 288,
+      "words": 2377
+    },
+    {
+      "id": "pos-customer-loyalty",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-customer-loyalty\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-customer-loyalty",
+        "description": "Builds POS loyalty: member identity and lookup, points earn/burn/expire as an append-only ledger, tiers and benefits, coupons and vouchers, accrual and redemption at checkout, reversal on refund, points liability, and consent/PDPA. Use for \"points not added\", \"member discount\", \"redeem points\", tier upgrade, coupon abuse, สมาชิก, แต้มสะสม, or loyalty fraud. Not for generic CRM/marketing automation or payment settlement (pos-payment-reconciliation).\n"
+      },
+      "description": "builds pos loyalty: member identity and lookup, points earn/burn/expire as an append-only ledger, tiers and benefits, coupons and vouchers, accrual and redemption at checkout, reversal on refund, points liability, and consent/pdpa. use for \"points not added\", \"member discount\", \"redeem points\", tier upgrade, coupon abuse, สมาชิก, แต้มสะสม, or loyalty fraud. not for generic crm/marketing automation or payment settlement (pos-payment-reconciliation).",
+      "headings": [
+        "POS customer loyalty",
+        "When to use",
+        "Model",
+        "Points as lots (the part that is usually wrong)",
+        "Accrual rules",
+        "Redemption at checkout",
+        "Tiers",
+        "Coupons, vouchers and gift cards",
+        "Refunds and voids",
+        "Consent and privacy",
+        "Workflow: implement loyalty on an existing POS",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-multi-tenant-saas",
+        "pos-offline-sync-engine",
+        "pos-payment-reconciliation",
+        "pos-profit-intelligence",
+        "pos-sales-checkout",
+        "pos-thailand-commerce"
+      ],
+      "lines": 248,
+      "words": 1997
+    },
+    {
+      "id": "pos-domain-expert",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-domain-expert\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-domain-expert",
+        "description": "Entry point for any POS (point of sale) design, review, migration or debugging task. Holds the canonical POS domain model, the money/time/idempotency contracts, the invariants every module must satisfy, and the routing table to the eleven specialist pos-* skills (checkout, inventory ledger, payments, shift cash, offline sync, multi-tenant SaaS, Thailand VAT/receipts, loyalty, profit analytics, hardware, backup/DR). Trigger on \"POS\", \"point of sale\", \"ขายหน้าร้าน\", \"เครื่อง POS\", \"แคชเชียร์\", \"checkout\", \"receipt\", \"shift close\", \"stock ledger\", \"offline sale\", \"ปิดกะ\", \"ใบเสร็จ\", or when reviewing or extending a POS codebase. Not for generic e-commerce carts, marketing sites or game UI.\n"
+      },
+      "description": "entry point for any pos (point of sale) design, review, migration or debugging task. holds the canonical pos domain model, the money/time/idempotency contracts, the invariants every module must satisfy, and the routing table to the eleven specialist pos-* skills (checkout, inventory ledger, payments, shift cash, offline sync, multi-tenant saas, thailand vat/receipts, loyalty, profit analytics, hardware, backup/dr). trigger on \"pos\", \"point of sale\", \"ขายหน้าร้าน\", \"เครื่อง pos\", \"แคชเชียร์\", \"checkout\", \"receipt\", \"shift close\", \"stock ledger\", \"offline sale\", \"ปิดกะ\", \"ใบเสร็จ\", or when reviewing or extending a pos codebase. not for generic e-commerce carts, marketing sites or game ui.",
+      "headings": [
+        "POS domain expert",
+        "When to use",
+        "Ubiquitous language",
+        "Canonical model",
+        "Contracts every POS module must honour",
+        "MONEY-01 — integer minor units only",
+        "TIME-01 — two clocks, one authority",
+        "IDEM-01 — every write is replayable",
+        "LEDGER-01 — append-only for anything that must add up",
+        "STATE-01 — explicit state machines",
+        "AUDIT-01 — attributes, not just a timestamp",
+        "TENANT-01 — tenant scope is structural",
+        "Core invariants",
+        "Reference architecture",
+        "Command pipeline (use this order every time)",
+        "Workflow: approach an unfamiliar POS task",
+        "Business rules (cross-cutting)",
+        "Edge cases (cross-cutting)",
+        "Security baseline",
+        "Error handling",
+        "Testing requirements (pack-wide)",
+        "Routing table",
+        "Design review checklist",
+        "Anti-patterns",
+        "Cross-skill references",
+        "Output expectations"
+      ],
+      "refs": [
+        "pos-backup-recovery",
+        "pos-customer-loyalty",
+        "pos-hardware-integration",
+        "pos-inventory-management",
+        "pos-multi-tenant-saas",
+        "pos-offline-sync-engine",
+        "pos-payment-reconciliation",
+        "pos-profit-intelligence",
+        "pos-sales-checkout",
+        "pos-shift-cash-management",
+        "pos-thailand-commerce"
+      ],
+      "lines": 325,
+      "words": 2865
+    },
+    {
+      "id": "pos-hardware-integration",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-hardware-integration\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-hardware-integration",
+        "description": "Integrates POS peripherals behind a testable abstraction: barcode scanners (HID/GS1), ESC/POS receipt printers including Thai code pages, cash drawers, scales, customer displays, EDC terminals and kiosks, with health checks, print queues, failure recovery and device security. Use for \"printer not printing\", \"barcode wrong item\", \"drawer won't open\", Thai text garbled on receipt, เครื่องพิมพ์ใบเสร็จ, บาร์โค้ด, or peripheral timeouts. Not for payment confirmation logic (pos-payment-reconciliation) or receipt content rules (pos-thailand-commerce).\n"
+      },
+      "description": "integrates pos peripherals behind a testable abstraction: barcode scanners (hid/gs1), esc/pos receipt printers including thai code pages, cash drawers, scales, customer displays, edc terminals and kiosks, with health checks, print queues, failure recovery and device security. use for \"printer not printing\", \"barcode wrong item\", \"drawer won't open\", thai text garbled on receipt, เครื่องพิมพ์ใบเสร็จ, บาร์โค้ด, or peripheral timeouts. not for payment confirmation logic (pos-payment-reconciliation) or receipt content rules (pos-thailand-commerce).",
+      "headings": [
+        "POS hardware integration",
+        "When to use",
+        "Architecture: ports and adapters",
+        "Receipt printing (ESC/POS)",
+        "Document, not strings",
+        "Character encoding and Thai",
+        "Job handling",
+        "Typical ESC/POS primer",
+        "Barcode scanners",
+        "HID keyboard wedge",
+        "Symbologies and GS1",
+        "Cash drawer",
+        "Scales",
+        "Customer display, KDS and kiosks",
+        "EDC terminals",
+        "Device lifecycle and configuration",
+        "Workflow: integrate a peripheral",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-backup-recovery",
+        "pos-domain-expert",
+        "pos-multi-tenant-saas",
+        "pos-offline-sync-engine",
+        "pos-payment-reconciliation",
+        "pos-sales-checkout",
+        "pos-shift-cash-management",
+        "pos-thailand-commerce"
+      ],
+      "lines": 299,
+      "words": 2417
+    },
+    {
+      "id": "pos-inventory-management",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-inventory-management\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-inventory-management",
+        "description": "Designs and debugs POS stock control as an append-only ledger: movements and reasons, stock on hand per location, weighted-average and FIFO costing, transfers, stocktake/cycle count, recipes and BOMs, lot/expiry, negative-stock policy, reorder points and shrinkage. Use for \"stock is wrong\", overselling, stocktake variance, transfer mismatch, cost of goods, \"official stock\", สต๊อกไม่ตรง, or inventory audit queries. Not for sale totals (pos-sales-checkout), margin dashboards (pos-profit-intelligence), or backup of inventory data (pos-backup-recovery).\n"
+      },
+      "description": "designs and debugs pos stock control as an append-only ledger: movements and reasons, stock on hand per location, weighted-average and fifo costing, transfers, stocktake/cycle count, recipes and boms, lot/expiry, negative-stock policy, reorder points and shrinkage. use for \"stock is wrong\", overselling, stocktake variance, transfer mismatch, cost of goods, \"official stock\", สต๊อกไม่ตรง, or inventory audit queries. not for sale totals (pos-sales-checkout), margin dashboards (pos-profit-intelligence), or backup of inventory data (pos-backup-recovery).",
+      "headings": [
+        "POS inventory management",
+        "When to use",
+        "Model",
+        "Reason codes are a closed set",
+        "Invariants",
+        "Costing",
+        "Workflow: add or repair stock control",
+        "Transfers",
+        "Stocktake & cycle count",
+        "Recipes, bundles and combos",
+        "Batch, lot and expiry",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-backup-recovery",
+        "pos-hardware-integration",
+        "pos-multi-tenant-saas",
+        "pos-offline-sync-engine",
+        "pos-profit-intelligence",
+        "pos-sales-checkout"
+      ],
+      "lines": 239,
+      "words": 1898
+    },
+    {
+      "id": "pos-multi-tenant-saas",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-multi-tenant-saas\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-multi-tenant-saas",
+        "description": "Designs multi-tenant POS SaaS: tenancy model choice, tenant-leading keys and RLS, provisioning and onboarding, per-tenant configuration (currency, tax, receipt templates, device policy), plans and entitlements, store-scoped RBAC, support impersonation, quotas, offboarding and per-tenant migration. Use for \"multi-tenant\", \"tenant isolation\", \"one database per customer\", \"role permissions\", \"tenant config\", หรือ \"SaaS onboarding\". Not for single-store POS logic (pos-domain-expert) or Thailand tax rules (pos-thailand-commerce).\n"
+      },
+      "description": "designs multi-tenant pos saas: tenancy model choice, tenant-leading keys and rls, provisioning and onboarding, per-tenant configuration (currency, tax, receipt templates, device policy), plans and entitlements, store-scoped rbac, support impersonation, quotas, offboarding and per-tenant migration. use for \"multi-tenant\", \"tenant isolation\", \"one database per customer\", \"role permissions\", \"tenant config\", หรือ \"saas onboarding\". not for single-store pos logic (pos-domain-expert) or thailand tax rules (pos-thailand-commerce).",
+      "headings": [
+        "Multi-tenant POS SaaS",
+        "When to use",
+        "Tenancy models",
+        "Tenant-scoped identity and access",
+        "Request pipeline",
+        "Provisioning workflow",
+        "Configuration and versioning",
+        "Plans, entitlements and quotas",
+        "Isolation verification (this is the part teams skip)",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-backup-recovery",
+        "pos-domain-expert",
+        "pos-inventory-management",
+        "pos-offline-sync-engine",
+        "pos-profit-intelligence",
+        "pos-sales-checkout",
+        "pos-shift-cash-management",
+        "pos-thailand-commerce"
+      ],
+      "lines": 235,
+      "words": 1772
+    },
+    {
+      "id": "pos-offline-sync-engine",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-offline-sync-engine\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-offline-sync-engine",
+        "description": "Designs the offline-first layer of a POS: local database, outbox queue, device registration and sequencing, push/pull sync protocol with cursors, idempotent replay, clock skew, conflict resolution per entity, catalog/price propagation, and sync observability. Use for \"POS works offline\", \"sales not syncing\", duplicate sales after reconnect, queue stuck, \"sync conflict\", ทำงานออฟไลน์, or multi-device consistency. Not for provider webhooks (pos-payment-reconciliation) or tenant isolation (pos-multi-tenant-saas).\n"
+      },
+      "description": "designs the offline-first layer of a pos: local database, outbox queue, device registration and sequencing, push/pull sync protocol with cursors, idempotent replay, clock skew, conflict resolution per entity, catalog/price propagation, and sync observability. use for \"pos works offline\", \"sales not syncing\", duplicate sales after reconnect, queue stuck, \"sync conflict\", ทำงานออฟไลน์, or multi-device consistency. not for provider webhooks (pos-payment-reconciliation) or tenant isolation (pos-multi-tenant-saas).",
+      "headings": [
+        "POS offline sync engine",
+        "When to use",
+        "Topology",
+        "Local schema (minimum)",
+        "Sync protocol",
+        "Clock skew and ordering",
+        "Conflict resolution matrix",
+        "Offline policy per capability",
+        "Conflict and recovery UX",
+        "Workflow: implement or fix sync",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-backup-recovery",
+        "pos-domain-expert",
+        "pos-hardware-integration",
+        "pos-inventory-management",
+        "pos-multi-tenant-saas",
+        "pos-payment-reconciliation",
+        "pos-sales-checkout",
+        "pos-shift-cash-management"
+      ],
+      "lines": 285,
+      "words": 2329
+    },
+    {
+      "id": "pos-payment-reconciliation",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-payment-reconciliation\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-payment-reconciliation",
+        "description": "Owns the money-movement side of POS payments: payment intent lifecycle, gateway abstraction, signed webhooks, status polling, QR/PromptPay confirmation boundaries, capture/void/refund at the provider, settlement batches, fees, chargebacks, and daily reconciliation. Use for \"payment stuck pending\", \"customer paid but sale not completed\", duplicate charge, webhook missed, settlement mismatch, PromptPay QR, or refund not reaching the customer. Not for cart totals (pos-sales-checkout), Thai tax invoice fields (pos-thailand-commerce), or shift cash counts (pos-shift-cash-management).\n"
+      },
+      "description": "owns the money-movement side of pos payments: payment intent lifecycle, gateway abstraction, signed webhooks, status polling, qr/promptpay confirmation boundaries, capture/void/refund at the provider, settlement batches, fees, chargebacks, and daily reconciliation. use for \"payment stuck pending\", \"customer paid but sale not completed\", duplicate charge, webhook missed, settlement mismatch, promptpay qr, or refund not reaching the customer. not for cart totals (pos-sales-checkout), thai tax invoice fields (pos-thailand-commerce), or shift cash counts (pos-shift-cash-management).",
+      "headings": [
+        "POS payment & reconciliation",
+        "When to use",
+        "Hard boundary: what is not proof of payment",
+        "Payment state machine",
+        "Gateway abstraction",
+        "Webhook ingestion",
+        "Authoritative status query (fallback)",
+        "QR / PromptPay integration boundaries",
+        "Refunds, voids and chargebacks",
+        "Daily reconciliation",
+        "Workflow: integrate a payment method",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-hardware-integration",
+        "pos-offline-sync-engine",
+        "pos-profit-intelligence",
+        "pos-sales-checkout",
+        "pos-shift-cash-management",
+        "pos-thailand-commerce"
+      ],
+      "lines": 312,
+      "words": 2258
+    },
+    {
+      "id": "pos-profit-intelligence",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-profit-intelligence\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-profit-intelligence",
+        "description": "Turns POS transactions into trustworthy profit and performance metrics: COGS from the inventory ledger, gross margin by item/category/store, basket analysis, ABC and dead stock, promo ROI, shrinkage, staff and hour performance, and metric contracts that reconcile to accounting. Use for \"margin report\", \"best sellers\", \"why is profit down\", \"COGS wrong\", \"basket analysis\", กำไร, ต้นทุนขาย, or dashboard definitions. Not for changing stock (pos-inventory-management) or statutory VAT filings (pos-thailand-commerce).\n"
+      },
+      "description": "turns pos transactions into trustworthy profit and performance metrics: cogs from the inventory ledger, gross margin by item/category/store, basket analysis, abc and dead stock, promo roi, shrinkage, staff and hour performance, and metric contracts that reconcile to accounting. use for \"margin report\", \"best sellers\", \"why is profit down\", \"cogs wrong\", \"basket analysis\", กำไร, ต้นทุนขาย, or dashboard definitions. not for changing stock (pos-inventory-management) or statutory vat filings (pos-thailand-commerce).",
+      "headings": [
+        "POS profit intelligence",
+        "When to use",
+        "Metric contracts (write these down)",
+        "COGS: the only correct source",
+        "Basket analysis",
+        "Assortment and inventory metrics",
+        "Promotions and discounts",
+        "Data model for analytics",
+        "Workflow: build or fix a profit report",
+        "Business rules",
+        "Edge cases",
+        "Security and privacy",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-backup-recovery",
+        "pos-customer-loyalty",
+        "pos-domain-expert",
+        "pos-inventory-management",
+        "pos-multi-tenant-saas",
+        "pos-payment-reconciliation",
+        "pos-sales-checkout",
+        "pos-thailand-commerce"
+      ],
+      "lines": 248,
+      "words": 1976
+    },
+    {
+      "id": "pos-sales-checkout",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-sales-checkout\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-sales-checkout",
+        "description": "Designs and debugs the POS sale itself: cart and line items, pricing and discounts, tax display, totals rounding, sale state machine, tender orchestration, receipt content snapshot, void, refund and exchange. Use for checkout flow, \"total is wrong\", \"discount not applied\", duplicate sales, \"void a receipt\", split payment, part refund, or receipt line/total mismatches. Not for provider settlement and webhook reconciliation (pos-payment-reconciliation), shift cash counts (pos-shift-cash-management), or Thai legal receipt fields (pos-thailand-commerce).\n"
+      },
+      "description": "designs and debugs the pos sale itself: cart and line items, pricing and discounts, tax display, totals rounding, sale state machine, tender orchestration, receipt content snapshot, void, refund and exchange. use for checkout flow, \"total is wrong\", \"discount not applied\", duplicate sales, \"void a receipt\", split payment, part refund, or receipt line/total mismatches. not for provider settlement and webhook reconciliation (pos-payment-reconciliation), shift cash counts (pos-shift-cash-management), or thai legal receipt fields (pos-thailand-commerce).",
+      "headings": [
+        "POS sales & checkout",
+        "When to use",
+        "Sale state machine",
+        "Totals algorithm (single source of truth)",
+        "Worked example (THB, VAT 7% inclusive)",
+        "Tender orchestration",
+        "Receipt snapshot",
+        "Void vs refund vs exchange",
+        "Data model",
+        "Workflow: implement or fix checkout",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-customer-loyalty",
+        "pos-domain-expert",
+        "pos-hardware-integration",
+        "pos-inventory-management",
+        "pos-offline-sync-engine",
+        "pos-payment-reconciliation",
+        "pos-shift-cash-management",
+        "pos-thailand-commerce"
+      ],
+      "lines": 325,
+      "words": 2293
+    },
+    {
+      "id": "pos-shift-cash-management",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-shift-cash-management\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-shift-cash-management",
+        "description": "Owns cashier shifts and the cash drawer: opening float, cash in/out, petty cash, safe drops, blind counts, variance handling, X and Z reports, handover between cashiers, and shift-level cash reconciliation. Use for \"close shift\", \"drawer is short/over\", \"ปิดกะ\", \"เงินทอนไม่ตรง\", opening float, Z-report, or end-of-day cash. Not for card/QR settlement (pos-payment-reconciliation), sale totals (pos-sales-checkout), or receipt tax fields (pos-thailand-commerce).\n"
+      },
+      "description": "owns cashier shifts and the cash drawer: opening float, cash in/out, petty cash, safe drops, blind counts, variance handling, x and z reports, handover between cashiers, and shift-level cash reconciliation. use for \"close shift\", \"drawer is short/over\", \"ปิดกะ\", \"เงินทอนไม่ตรง\", opening float, z-report, or end-of-day cash. not for card/qr settlement (pos-payment-reconciliation), sale totals (pos-sales-checkout), or receipt tax fields (pos-thailand-commerce).",
+      "headings": [
+        "POS shift & cash management",
+        "When to use",
+        "Shift state machine",
+        "Cash mathematics",
+        "Opening a shift",
+        "Cash movements",
+        "X-report vs Z-report",
+        "Closing a shift: workflow",
+        "Handover",
+        "Late and offline sales",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-backup-recovery",
+        "pos-domain-expert",
+        "pos-hardware-integration",
+        "pos-offline-sync-engine",
+        "pos-payment-reconciliation",
+        "pos-sales-checkout",
+        "pos-thailand-commerce"
+      ],
+      "lines": 256,
+      "words": 1993
+    },
+    {
+      "id": "pos-thailand-commerce",
+      "path": "E:\\Code\\POS\\.agents\\skills\\pos-thailand-commerce\\SKILL.md",
+      "errors": [],
+      "warnings": [],
+      "meta": {
+        "name": "pos-thailand-commerce",
+        "description": "Thai retail compliance and money rules for POS: 7% VAT inclusive/exclusive arithmetic, per-line and document rounding, receipt vs abbreviated/full tax invoice, credit/debit notes, required fields, branch and tax IDs, e-Tax Invoice boundaries, PromptPay QR limits, PDPA duties, and Thai language/formatting. Use for ใบกำกับภาษี, ใบเสร็จ, VAT 7%, ภาษีมูลค่าเพิ่ม, PromptPay, e-Tax, Thai receipt fields, or Thai address/date formatting. Not for gateway settlement mechanics (pos-payment-reconciliation) or general cart logic (pos-sales-checkout).\n"
+      },
+      "description": "thai retail compliance and money rules for pos: 7% vat inclusive/exclusive arithmetic, per-line and document rounding, receipt vs abbreviated/full tax invoice, credit/debit notes, required fields, branch and tax ids, e-tax invoice boundaries, promptpay qr limits, pdpa duties, and thai language/formatting. use for ใบกำกับภาษี, ใบเสร็จ, vat 7%, ภาษีมูลค่าเพิ่ม, promptpay, e-tax, thai receipt fields, or thai address/date formatting. not for gateway settlement mechanics (pos-payment-reconciliation) or general cart logic (pos-sales-checkout).",
+      "headings": [
+        "Thai commerce for POS",
+        "When to use",
+        "VAT fundamentals",
+        "Inclusive vs exclusive arithmetic",
+        "Discounts, service charge and VAT",
+        "Documents",
+        "Minimum content to design for",
+        "POS-specific practice",
+        "e-Tax Invoice boundaries",
+        "PromptPay QR boundaries",
+        "PDPA and customer data at the till",
+        "Thai formatting",
+        "Workflow: add Thai compliance to a POS",
+        "Business rules",
+        "Edge cases",
+        "Security",
+        "Error handling",
+        "Testing requirements",
+        "Anti-patterns",
+        "Cross-skill references"
+      ],
+      "refs": [
+        "pos-backup-recovery",
+        "pos-hardware-integration",
+        "pos-multi-tenant-saas",
+        "pos-offline-sync-engine",
+        "pos-payment-reconciliation",
+        "pos-sales-checkout",
+        "pos-shift-cash-management"
+      ],
+      "lines": 308,
+      "words": 2603
+    }
+  ],
+  "similarity": [
+    {
+      "score": 0.256,
+      "a": "pos-payment-reconciliation",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.183,
+      "a": "pos-sales-checkout",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.169,
+      "a": "pos-payment-reconciliation",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.16,
+      "a": "pos-payment-reconciliation",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.143,
+      "a": "pos-sales-checkout",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.115,
+      "a": "pos-backup-recovery",
+      "b": "pos-multi-tenant-saas"
+    },
+    {
+      "score": 0.103,
+      "a": "pos-hardware-integration",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.103,
+      "a": "pos-domain-expert",
+      "b": "pos-multi-tenant-saas"
+    },
+    {
+      "score": 0.097,
+      "a": "pos-hardware-integration",
+      "b": "pos-payment-reconciliation"
+    },
+    {
+      "score": 0.096,
+      "a": "pos-shift-cash-management",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.091,
+      "a": "pos-multi-tenant-saas",
+      "b": "pos-offline-sync-engine"
+    },
+    {
+      "score": 0.091,
+      "a": "pos-domain-expert",
+      "b": "pos-profit-intelligence"
+    },
+    {
+      "score": 0.09,
+      "a": "pos-backup-recovery",
+      "b": "pos-offline-sync-engine"
+    },
+    {
+      "score": 0.086,
+      "a": "pos-hardware-integration",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.084,
+      "a": "pos-inventory-management",
+      "b": "pos-profit-intelligence"
+    },
+    {
+      "score": 0.083,
+      "a": "pos-domain-expert",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.081,
+      "a": "pos-hardware-integration",
+      "b": "pos-multi-tenant-saas"
+    },
+    {
+      "score": 0.077,
+      "a": "pos-customer-loyalty",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.071,
+      "a": "pos-domain-expert",
+      "b": "pos-payment-reconciliation"
+    },
+    {
+      "score": 0.07,
+      "a": "pos-hardware-integration",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.069,
+      "a": "pos-offline-sync-engine",
+      "b": "pos-payment-reconciliation"
+    },
+    {
+      "score": 0.067,
+      "a": "pos-customer-loyalty",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.066,
+      "a": "pos-backup-recovery",
+      "b": "pos-domain-expert"
+    },
+    {
+      "score": 0.065,
+      "a": "pos-domain-expert",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.064,
+      "a": "pos-domain-expert",
+      "b": "pos-inventory-management"
+    },
+    {
+      "score": 0.061,
+      "a": "pos-offline-sync-engine",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.06,
+      "a": "pos-multi-tenant-saas",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.059,
+      "a": "pos-customer-loyalty",
+      "b": "pos-payment-reconciliation"
+    },
+    {
+      "score": 0.058,
+      "a": "pos-customer-loyalty",
+      "b": "pos-domain-expert"
+    },
+    {
+      "score": 0.057,
+      "a": "pos-inventory-management",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.056,
+      "a": "pos-domain-expert",
+      "b": "pos-offline-sync-engine"
+    },
+    {
+      "score": 0.056,
+      "a": "pos-customer-loyalty",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.052,
+      "a": "pos-multi-tenant-saas",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.049,
+      "a": "pos-multi-tenant-saas",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.049,
+      "a": "pos-customer-loyalty",
+      "b": "pos-inventory-management"
+    },
+    {
+      "score": 0.047,
+      "a": "pos-profit-intelligence",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.046,
+      "a": "pos-backup-recovery",
+      "b": "pos-inventory-management"
+    },
+    {
+      "score": 0.045,
+      "a": "pos-hardware-integration",
+      "b": "pos-profit-intelligence"
+    },
+    {
+      "score": 0.044,
+      "a": "pos-multi-tenant-saas",
+      "b": "pos-payment-reconciliation"
+    },
+    {
+      "score": 0.044,
+      "a": "pos-domain-expert",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.04,
+      "a": "pos-domain-expert",
+      "b": "pos-hardware-integration"
+    },
+    {
+      "score": 0.038,
+      "a": "pos-profit-intelligence",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.037,
+      "a": "pos-inventory-management",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.036,
+      "a": "pos-multi-tenant-saas",
+      "b": "pos-profit-intelligence"
+    },
+    {
+      "score": 0.034,
+      "a": "pos-hardware-integration",
+      "b": "pos-offline-sync-engine"
+    },
+    {
+      "score": 0.033,
+      "a": "pos-payment-reconciliation",
+      "b": "pos-profit-intelligence"
+    },
+    {
+      "score": 0.031,
+      "a": "pos-inventory-management",
+      "b": "pos-payment-reconciliation"
+    },
+    {
+      "score": 0.026,
+      "a": "pos-offline-sync-engine",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.026,
+      "a": "pos-customer-loyalty",
+      "b": "pos-offline-sync-engine"
+    },
+    {
+      "score": 0.025,
+      "a": "pos-offline-sync-engine",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.023,
+      "a": "pos-customer-loyalty",
+      "b": "pos-hardware-integration"
+    },
+    {
+      "score": 0.023,
+      "a": "pos-inventory-management",
+      "b": "pos-multi-tenant-saas"
+    },
+    {
+      "score": 0.022,
+      "a": "pos-backup-recovery",
+      "b": "pos-hardware-integration"
+    },
+    {
+      "score": 0.021,
+      "a": "pos-hardware-integration",
+      "b": "pos-inventory-management"
+    },
+    {
+      "score": 0.013,
+      "a": "pos-customer-loyalty",
+      "b": "pos-profit-intelligence"
+    },
+    {
+      "score": 0.012,
+      "a": "pos-backup-recovery",
+      "b": "pos-customer-loyalty"
+    },
+    {
+      "score": 0.012,
+      "a": "pos-profit-intelligence",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.012,
+      "a": "pos-backup-recovery",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.011,
+      "a": "pos-inventory-management",
+      "b": "pos-offline-sync-engine"
+    },
+    {
+      "score": 0.011,
+      "a": "pos-inventory-management",
+      "b": "pos-thailand-commerce"
+    },
+    {
+      "score": 0.011,
+      "a": "pos-backup-recovery",
+      "b": "pos-sales-checkout"
+    },
+    {
+      "score": 0.0,
+      "a": "pos-offline-sync-engine",
+      "b": "pos-profit-intelligence"
+    },
+    {
+      "score": 0.0,
+      "a": "pos-customer-loyalty",
+      "b": "pos-multi-tenant-saas"
+    },
+    {
+      "score": 0.0,
+      "a": "pos-backup-recovery",
+      "b": "pos-shift-cash-management"
+    },
+    {
+      "score": 0.0,
+      "a": "pos-backup-recovery",
+      "b": "pos-profit-intelligence"
+    },
+    {
+      "score": 0.0,
+      "a": "pos-backup-recovery",
+      "b": "pos-payment-reconciliation"
+    }
+  ],
+  "totals": {
+    "skills": 12,
+    "errors": 0,
+    "warnings": 0
+  }
+}

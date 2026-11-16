@@ -1,0 +1,40 @@
+import { StrictMode, Suspense } from 'react';
+import { createRoot } from 'react-dom/client';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { RouterProvider } from 'react-router-dom';
+import '@fontsource-variable/inter';
+import '@fontsource/ibm-plex-sans-thai/400.css';
+import '@fontsource/ibm-plex-sans-thai/500.css';
+import '@fontsource/ibm-plex-sans-thai/600.css';
+import '@fontsource/ibm-plex-sans-thai/700.css';
+import './styles.css';
+import { router } from './App';
+import { AuthProvider } from './lib/auth';
+import { LangProvider } from './lib/i18n';
+import { queryClient } from './lib/query';
+import { ThemeProvider } from './lib/theme';
+import { ToastProvider } from './components/ui';
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <LangProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <Suspense
+                fallback={
+                  <div className="flex min-h-screen items-center justify-center bg-bg text-[12px] text-muted">
+                    NEXORA
+                  </div>
+                }
+              >
+                <RouterProvider router={router} />
+              </Suspense>
+            </AuthProvider>
+          </ToastProvider>
+        </LangProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </StrictMode>,
+);
