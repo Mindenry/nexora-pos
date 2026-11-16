@@ -91,7 +91,8 @@ export function printReceipt(receipt: PrintableReceipt): void {
     @page { size: 80mm auto; margin: 4mm; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
-    body { font-family: 'IBM Plex Sans Thai','Noto Sans Thai','Sarabun','Segoe UI',sans-serif; color:#000; font-size:10px; line-height:1.45; }
+    body { font-family: 'IBM Plex Sans Thai','Noto Sans Thai','Sarabun','Segoe UI',sans-serif; color:#000; font-size:10px; line-height:1.45; background:#eef0ed; }
+    .paper { width:72mm; margin:0 auto; padding:3mm; background:#fff; box-shadow:0 0 0 1px #d9ddd8, 0 8px 24px rgba(15,21,19,.12); }
     .center { text-align:center; }
     .mark { width: 9mm; height: 9mm; margin: 0 auto 2mm; border: 1.5px solid #000; border-radius: 2mm; font-size: 14px; font-weight: 800; line-height: 9mm; letter-spacing: 0; }
     .brand { font-size: 13px; font-weight: 800; letter-spacing: .24em; }
@@ -126,7 +127,25 @@ export function printReceipt(receipt: PrintableReceipt): void {
     .footer .fine { margin-top:1mm; font-size:8px; color:#333; line-height:1.5; }
     .footer .serial { margin-top:1.5mm; font-size:7.5px; letter-spacing:.06em; color:#333; }
     .refund { font-weight:800; }
+    .print-toolbar { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:2mm; margin:0 0 3mm; padding:2.5mm 3mm; background:#0f1513; color:#fff; font-size:9px; }
+    .print-toolbar strong { letter-spacing:.18em; font-size:9px; }
+    .print-toolbar .actions { display:flex; gap:1.5mm; }
+    .print-toolbar button { border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff; border-radius:1.5mm; padding:1.2mm 2.5mm; font-size:9px; font-family:inherit; }
+    .print-toolbar button.primary { background:#2aa78c; border-color:#2aa78c; font-weight:700; }
+    @media print {
+      .print-toolbar { display:none !important; }
+      body { margin:0; background:#fff; }
+      .paper { width:auto; margin:0; padding:0; box-shadow:none; }
+    }
   </style></head><body>
+    <div class="print-toolbar">
+      <strong>NEXORA POS</strong>
+      <span class="actions">
+        <button class="primary" onclick="window.print()">พิมพ์ / Print</button>
+        <button onclick="window.close()">ปิด / Close</button>
+      </span>
+    </div>
+    <div class="paper">
     <div class="center">
       <div class="mark">N</div>
       <div class="brand">NEXORA</div>
@@ -175,8 +194,34 @@ export function printReceipt(receipt: PrintableReceipt): void {
       <div class="fine">ใบเสร็จนี้เป็นหลักฐานการชำระเงิน<br/>สินค้าที่ซื้อแล้วสามารถเปลี่ยนหรือคืนได้ตามเงื่อนไขของร้าน</div>
       <div class="serial">${escapeHtml(receipt.number)} · ${escapeHtml(receipt.businessDate ?? '')} · NEXORA POS</div>
     </div>
+    </div>
   </body></html>`;
 
+  // Open the print window synchronously from the click. This keeps the user
+  // gesture on iOS/Safari and gives a visible receipt page with its own print
+  // button, even when the browser declines to open the print sheet itself.
+  const win = window.open('', '_blank', 'width=460,height=780');
+  if (win) {
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    let printed = false;
+    const doPrint = () => {
+      if (printed) return;
+      printed = true;
+      try {
+        win.focus();
+        win.print();
+      } catch {
+        // The visible toolbar button remains available.
+      }
+    };
+    win.addEventListener('load', () => window.setTimeout(doPrint, 150));
+    window.setTimeout(doPrint, 600);
+    return;
+  }
+
+  // Popup blocked: fall back to a hidden iframe (desktop browsers).
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';

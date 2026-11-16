@@ -124,23 +124,22 @@ export function SaleDetailPage() {
     await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
   };
 
-  const printCurrent = async () => {
-    try {
-      const result = await api<ReceiptSnapshot>(`/sales/${id}/receipt`);
-      printReceipt(result.data);
-    } catch (error) {
-      toast.error(t('พิมพ์ใบเสร็จไม่สำเร็จ', 'Print failed'), errorMessage(error, locale));
-    }
+  const printCurrent = () => {
+    if (!sale) return;
+    // Print from the already-loaded immutable snapshot so window.open runs
+    // inside the click gesture. Opening it after an await is blocked by Safari
+    // and many popup blockers.
+    printReceipt(sale.receipt);
   };
 
-  const reprint = async () => {
-    try {
-      const result = await api<ReceiptSnapshot>(`/sales/${id}/reprint`, { method: 'POST', body: {} });
-      printReceipt(result.data);
-      toast.success(t('พิมพ์ซ้ำแล้ว', 'Reprinted'));
-    } catch (error) {
-      toast.error(t('พิมพ์ซ้ำไม่สำเร็จ', 'Reprint failed'), errorMessage(error, locale));
-    }
+  const reprint = () => {
+    if (!sale) return;
+    printReceipt({ ...sale.receipt, reprint: true });
+    void api<ReceiptSnapshot>(`/sales/${id}/reprint`, { method: 'POST', body: {} })
+      .then(() => toast.success(t('พิมพ์ซ้ำแล้ว', 'Reprinted')))
+      .catch((error) =>
+        toast.error(t('พิมพ์ซ้ำไม่สำเร็จ', 'Reprint failed'), errorMessage(error, locale)),
+      );
   };
 
   const selectedItems = Object.entries(refundQty)

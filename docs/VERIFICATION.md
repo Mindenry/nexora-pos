@@ -163,6 +163,12 @@ against `max(number)` before accepting traffic post-restore (documented).
   first character. It now depends only on `open`. Verified by typing a 10-digit
   identifier, a Thai account name, the login email/password and a POS barcode
   one character at a time; the full values and focus were retained.
+- Receipt printing fixed: print now opens a visible receipt window
+  synchronously from the click (avoiding Safari/popup blockers after `await`),
+  with an in-page “พิมพ์ / Print” button. Sale detail prints the loaded snapshot
+  immediately and records a reprint in the background. Verified by opening the
+  print window from Sale Detail; it contained the receipt number and print
+  control, and the 80mm preview was captured.
 - 1920×1080: dashboard content stays capped and readable.
 - Customer display checked at 1280×800 and 1024×768 (idle + cart).
 - Dark mode checked on dashboard.
