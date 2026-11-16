@@ -25,6 +25,7 @@ const envSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   WEB_ORIGIN: z.string().default('http://localhost:5173'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  PROMPTPAY_ENCRYPTION_KEY: z.string().optional(),
 });
 
 export interface Config {
@@ -35,6 +36,7 @@ export interface Config {
   port: number;
   webOrigin: string;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
+  promptpayEncryptionKey?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -52,5 +54,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     port: value.API_PORT,
     webOrigin: value.WEB_ORIGIN,
     logLevel: value.LOG_LEVEL,
+    promptpayEncryptionKey: value.PROMPTPAY_ENCRYPTION_KEY,
   };
 }

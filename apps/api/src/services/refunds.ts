@@ -302,6 +302,18 @@ export async function performRefund(
          WHERE tenant_id=$3 AND sale_id=$4 AND status IN ('paid','partially_refunded')`,
         [newRefunded, sale.total_satang, tenantId, sale.id],
       );
+      if (newStatus === 'refunded') {
+        await client.query(
+          `UPDATE payment_sessions SET status = 'refunded'
+           WHERE tenant_id = $1 AND sale_id = $2 AND status = 'paid'`,
+          [tenantId, sale.id],
+        );
+        await client.query(
+          `UPDATE payment_transactions SET status = 'refunded'
+           WHERE tenant_id = $1 AND sale_id = $2 AND status = 'verified'`,
+          [tenantId, sale.id],
+        );
+      }
 
       if (sale.customer_id) {
         await client.query(
@@ -442,6 +454,16 @@ export async function voidSale(
       }
       await client.query(
         `UPDATE payments SET status='refunded' WHERE tenant_id=$1 AND sale_id=$2 AND status IN ('paid','partially_refunded')`,
+        [tenantId, saleId],
+      );
+      await client.query(
+        `UPDATE payment_sessions SET status='refunded'
+         WHERE tenant_id=$1 AND sale_id=$2 AND status='paid'`,
+        [tenantId, saleId],
+      );
+      await client.query(
+        `UPDATE payment_transactions SET status='refunded'
+         WHERE tenant_id=$1 AND sale_id=$2 AND status='verified'`,
         [tenantId, saleId],
       );
       await client.query(

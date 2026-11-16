@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Clock,
   LayoutDashboard,
+  QrCode,
   LogOut,
   Menu,
   Monitor,
@@ -58,6 +59,7 @@ const NAV_GROUPS: Array<{ key: string; labelTh: string; labelEn: string; items: 
       { to: '/pos', icon: Monitor, labelTh: 'ขายหน้าร้าน', labelEn: 'Point of sale', permission: 'sales.create' },
       { to: '/sales', icon: Receipt, labelTh: 'รายการขาย', labelEn: 'Sales', permission: 'sales.read' },
       { to: '/shifts', icon: Clock, labelTh: 'กะและเงินสด', labelEn: 'Shifts & cash', permission: 'shifts.read' },
+      { to: '/promptpay', icon: QrCode, labelTh: 'พร้อมเพย์', labelEn: 'PromptPay', permission: 'payments.read' },
     ],
   },
   {
@@ -96,6 +98,7 @@ const PAGE_TITLES: Array<{ prefix: string; th: string; en: string }> = [
   { prefix: '/pos', th: 'ขายหน้าร้าน', en: 'Point of sale' },
   { prefix: '/sales', th: 'รายการขาย', en: 'Sales' },
   { prefix: '/shifts', th: 'กะและเงินสด', en: 'Shifts & cash' },
+  { prefix: '/promptpay', th: 'พร้อมเพย์', en: 'PromptPay' },
   { prefix: '/products', th: 'สินค้า', en: 'Products' },
   { prefix: '/inventory', th: 'สต๊อกสินค้า', en: 'Inventory' },
   { prefix: '/purchasing', th: 'จัดซื้อ', en: 'Purchasing' },

@@ -9,12 +9,12 @@ runs were fixed before the final pass; this file records the final evidence.
 | --- | --- | --- |
 | TypeScript | `npm run typecheck` | ✅ all four workspaces, 0 errors |
 | ESLint | `npm run lint` | ✅ 0 errors, 0 warnings |
-| Production build | `npm run build` | ✅ API bundle + code-split SPA; main JS 373 kB (109 kB gzip) + lazy route chunks |
-| Migration | `npm run db:migrate` | ✅ 7 migrations applied, checksums verified |
+| Production build | `npm run build` | ✅ API bundle + code-split SPA; main JS 375 kB (109 kB gzip), POS 94 kB, PromptPay page 31 kB |
+| Migration | `npm run db:migrate` | ✅ 11 migrations applied (through `0011_promptpay_relabel_generic_qr.sql`), checksums verified |
 
 ## Unit & integration
 
-`npm test` → **4 files, 30 tests passed**:
+`npm test` → **6 files, 82 tests passed**:
 
 - Integer money half-up, basis points, VAT from gross/net, largest-remainder
   allocation (including zero-weight totals).
@@ -49,10 +49,28 @@ runs were fixed before the final pass; this file records the final evidence.
     ฿2, balance and ledger reconcile, over-redemption rejected;
   - product image upload accepts a real PNG, serves it from `/uploads`, and
     rejects a spoofed signature with 422.
+- **PromptPay engine** (`packages/promptpay`, 37 tests):
+  - CRC `123456789 → 29B1`;
+  - phone normalization for local, dashed, `+66` and `66` forms;
+  - national ID MOD-11 valid/invalid cases and masking;
+  - five byte-for-byte reference vectors (mobile/national ID, static/fixed
+    amount);
+  - exact amount formatting and bounds;
+  - strict TLV decode, tampered CRC rejection, tag 62 reference round-trip.
+- **PromptPay API integration** (`apps/api/test/promptpay.test.ts`, 15 tests):
+  - encrypted account storage, masked-only responses, duplicate/invalid
+    rejection, default promotion, accountant read-only RBAC;
+  - static no-amount QR;
+  - session pricing, QR/reference, wrong-amount rejection, manual confirmation,
+    idempotent repeat, concurrent confirmations (one transaction);
+  - checkout binds one verified session to one sale, replay-safe, reuse blocked,
+    unpaid checkout blocked;
+  - cancel, lazy expiry, audited expiry override, cross-tenant 404;
+  - POS tender availability and paid history summary.
 
 ## End-to-end (real Chrome via Playwright)
 
-`npx playwright test` → **17 passed (44s)**:
+`npx playwright test` → **20 passed (52s)**:
 
 1. iPad Pro 11" touch (1194×834): tap product → keypad quantity 4 → touch pay →
    receipt issued → new sale.
@@ -74,6 +92,16 @@ runs were fixed before the final pass; this file records the final evidence.
 15. 1024×768 cashier layout keeps product grid, cart, display and fullscreen controls.
 16. Loyalty: attach a customer, redeem points, receipt shows used/earned points.
 17. Platform admin console loads tenant overview.
+18. PromptPay account UI creates an account, shows only the masked identifier,
+    and never exposes the full value.
+19. PromptPay sale: QR image → staff verify (explicit “money arrived” checkbox)
+    → checkout → receipt → paid history row with verifier.
+20. Closing the PromptPay dialog leaves checkout disabled until receipt is
+    verified; reopening reuses the pending session; cancel works.
+
+PromptPay visual captures: `test-results/visual/promptpay-accounts.png`,
+`promptpay-accounts-ipad.png`, `pos-promptpay-qr-ipad.png`,
+`promptpay-history.png`.
 
 iPad visual captures: `test-results/visual/pos-ipad-landscape.png`,
 `shift-cashcount-ipad.png`, `pos-ipad-portrait.png`.

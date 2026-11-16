@@ -61,7 +61,9 @@ import { categoryArt } from '../lib/art';
 import { feedback, isSoundEnabled, setSoundEnabled } from '../lib/feedback';
 import { useBarcodeScanner } from '../lib/use-scanner';
 import { CashCountHelper } from '../components/cash-count';
+import { PromptPayPaymentDialog } from '../components/promptpay-payment';
 import { printShiftReport } from '../lib/shift-print';
+import type { PromptPaySession } from '../lib/promptpay';
 import { MoneyInput } from '../components/money-input';
 import { ReceiptView, type ReceiptSnapshot } from '../components/receipt';
 import {
@@ -188,6 +190,8 @@ interface PaymentRow {
   amountSatang: number;
   tenderedSatang: number;
   reference: string;
+  promptpaySessionId?: string;
+  promptpayVerified?: boolean;
 }
 
 interface CheckoutResult {
@@ -273,6 +277,7 @@ export function PosPage() {
   });
   const [qtyTarget, setQtyTarget] = useState<CartLine | null>(null);
   const [qtyBuffer, setQtyBuffer] = useState('');
+  const [promptpayRowKey, setPromptpayRowKey] = useState<string | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const autoShiftPrompted = useRef(false);
@@ -741,6 +746,7 @@ export function PosPage() {
       return;
     }
     setOperationId(uuidv7());
+    setPromptpayRowKey(null);
     setPayments([
       {
         key: uuidv7(),
@@ -773,6 +779,9 @@ export function PosPage() {
       const method = paymentMethods.find((m) => m.code === row.method);
       if (!method) return false;
       if (method.type === 'cash') return row.tenderedSatang >= row.amountSatang;
+      if (method.code === 'promptpay') {
+        return Boolean(row.promptpaySessionId && row.promptpayVerified);
+      }
       return Boolean(row.reference.trim());
     }) &&
     (!offline || payments.every((row) => paymentMethods.find((m) => m.code === row.method)?.type === 'cash'));
@@ -843,6 +852,7 @@ export function PosPage() {
         amountSatang: row.amountSatang,
         tenderedSatang: row.tenderedSatang,
         reference: row.reference || undefined,
+        promptpaySessionId: row.promptpaySessionId,
       })),
       redeemPoints: pointsUsed > 0 ? pointsUsed : undefined,
       deviceId: deviceId(),
@@ -971,6 +981,7 @@ export function PosPage() {
   };
 
   const resetCart = () => {
+    setPromptpayRowKey(null);
     setCart([]);
     setOrderDiscount(null);
     setCouponCode('');
@@ -1764,6 +1775,44 @@ export function PosPage() {
         </div>
       </Modal>
 
+      <PromptPayPaymentDialog
+        open={Boolean(promptpayRowKey)}
+        onClose={() => setPromptpayRowKey(null)}
+        onConfirmed={(session: PromptPaySession) => {
+          setPayments((prev) =>
+            prev.map((row) =>
+              row.key === promptpayRowKey
+                ? {
+                    ...row,
+                    amountSatang: session.amountSatang,
+                    reference: session.reference,
+                    promptpaySessionId: session.id,
+                    promptpayVerified: true,
+                  }
+                : row,
+            ),
+          );
+        }}
+        onOpenSettings={() => {
+          setPromptpayRowKey(null);
+          setCheckoutOpen(false);
+          navigate('/promptpay');
+        }}
+        operationId={operationId ?? ''}
+        amountSatang={payments.find((row) => row.key === promptpayRowKey)?.amountSatang ?? 0}
+        cart={{
+          items: cart.map((line) => ({
+            variantId: line.variantId,
+            qty: line.qty,
+            lineDiscount: line.lineDiscount ?? null,
+          })),
+          orderDiscount,
+          couponCode: couponCode.trim() || undefined,
+          customerId: customer?.id ?? null,
+          redeemPoints: pointsUsed > 0 ? pointsUsed : undefined,
+        }}
+      />
+
       {/* Quantity keypad for touch terminals */}
       <Modal
         open={Boolean(qtyTarget)}
@@ -2077,6 +2126,8 @@ export function PosPage() {
                                         ...p,
                                         method: event.target.value,
                                         reference: '',
+                                        promptpaySessionId: undefined,
+                                        promptpayVerified: false,
                                         tenderedSatang: next?.type === 'cash' ? p.amountSatang : p.amountSatang,
                                       }
                                     : p,
@@ -2112,6 +2163,11 @@ export function PosPage() {
                                     ? {
                                         ...p,
                                         amountSatang: value,
+                                        promptpaySessionId:
+                                          method?.code === 'promptpay' ? undefined : p.promptpaySessionId,
+                                        promptpayVerified:
+                                          method?.code === 'promptpay' ? false : p.promptpayVerified,
+                                        reference: method?.code === 'promptpay' ? '' : p.reference,
                                         tenderedSatang:
                                           method?.type === 'cash' && p.tenderedSatang < value
                                             ? value
@@ -2165,6 +2221,48 @@ export function PosPage() {
                               </button>
                             ))}
                           </div>
+                        </div>
+                      ) : method?.code === 'promptpay' ? (
+                        <div className="mt-2 rounded-lg border border-line bg-surface p-2.5">
+                          {row.promptpayVerified && row.promptpaySessionId ? (
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-jade-soft text-jade">
+                                  <CircleCheck className="h-4 w-4" />
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-[11.5px] font-medium text-jade">
+                                    {t('ยืนยันรับเงินแล้ว', 'Payment verified')}
+                                  </p>
+                                  <p className="num truncate text-[10.5px] text-faint">{row.reference}</p>
+                                </div>
+                              </div>
+                              <Badge tone="jade">{t('พร้อมเพย์', 'PromptPay')}</Badge>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-surface-3 text-muted">
+                                  <QrCode className="h-4 w-4" />
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-[11.5px] font-medium">
+                                    {t('ต้องสร้าง QR และยืนยันเงินเข้า', 'Generate a QR and verify receipt')}
+                                  </p>
+                                  <p className="text-[10.5px] text-faint">
+                                    {t('ยอด', 'Amount')} {money(row.amountSatang)}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setPromptpayRowKey(row.key)}
+                              >
+                                {t('สร้าง QR', 'Show QR')}
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="mt-2">

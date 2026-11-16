@@ -102,11 +102,23 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 - [x] PWA manifest/icons, iPad safe areas and 16px touch inputs
 - [x] iPad Pro 11" touch E2E (1194×834) and 1024×1366 portrait check
 
+## MILESTONE 10B — PromptPay QR & manual settlement ✅
+- [x] Standalone EMVCo/Thai QR payload engine (phone + national ID, static/dynamic)
+- [x] CRC-16/CCITT-FALSE, strict TLV decode, five published reference vectors
+- [x] Encrypted PromptPay accounts with masked display and RBAC
+- [x] Dynamic POS QR sessions, expiry, regenerate, cancel, audit timeline
+- [x] Staff-confirmed settlement bound to exactly one sale
+- [x] Static no-amount QR (download/print) for each receiving account
+- [x] Payment history/detail UI and refund/void status propagation
+- [x] 15 API integration tests + 3 PromptPay E2E journeys
+- [ ] Automatic provider verification (requires merchant/bank onboarding)
+- Reference: `docs/PROMPTPAY_*.md`
+
 ## MILESTONE 10 — Hardening & release 🟡
 - [x] Threat model and security controls (`docs/SECURITY.md`)
-- [x] Unit/property/integration tests: 30 passing
-- [x] E2E: 17 journeys passing on real Chrome (incl. offline, customer display,
-      keyboard, loyalty, iPad touch, scanner, cash count, 1024×768 layout)
+- [x] Unit/property/integration tests: 82 passing
+- [x] E2E: 20 journeys passing on real Chrome (incl. offline, customer display,
+      keyboard, loyalty, iPad touch, scanner, cash count, PromptPay, 1024×768)
 - [x] Typecheck, lint and production build clean
 - [x] Browser visual review light/dark, desktop/mobile
 - [x] Backup + restore drill with money reconciliation

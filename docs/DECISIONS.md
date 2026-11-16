@@ -58,6 +58,28 @@ The device caches the catalog and queues complete cash sales with UUIDv7
 operation ids. Card/QR are blocked offline. Replays are idempotent. This matches
 the risk profile of a small retailer without enabling unrecoverable card credit.
 
+## ADR-010 — Own the PromptPay payload engine, outsource only QR rasterisation
+**Date:** 2026-11-16 · **Status:** accepted
+
+The payload is the security-critical part: identifier normalization, MOD-11
+checksum, TLV lengths, AID, amount and CRC. Existing npm packages are useful
+references but either accept unvalidated identifiers or pull old dependencies.
+We implement the small engine in `packages/promptpay` with no runtime
+dependencies, test it byte-for-byte against independently published vectors, and
+use `qrcode` only to render a validated payload to PNG/SVG. Rendering can be
+swapped without touching validation, sessions or the POS.
+
+## ADR-011 — PromptPay settlement is manual by design
+**Date:** 2026-11-16 · **Status:** accepted
+
+No bank/PSP credentials exist, and neither QR creation, scanning nor expiry is
+proof of payment. Every dynamic QR creates a `pending` session. A staff member
+with `payments.confirm` must verify the exact amount; the system records the
+actor, time, optional slip reference and audit trail. Checkout locks the session
+and binds it to exactly one sale. A provider interface is reserved for a future
+signed webhook/slip/statement adapter. SMS/notification scraping and banking-app
+automation are rejected.
+
 ## ADR-009 — SQL-first data access (`pg`), no ORM
 **Date:** 2026-11-16 · **Status:** accepted
 

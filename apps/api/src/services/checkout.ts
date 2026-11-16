@@ -12,24 +12,8 @@ import { writeAudit } from './audit';
 import { appendMovement, onHandMap } from './inventory';
 import { runIdempotent } from './idempotency';
 import { allocateDocumentNumber } from './numbering';
+import { pricePosCart, type VariantRow } from './pos-pricing';
 import { loadActivePromotions } from './promotions';
-
-interface VariantRow {
-  id: string;
-  variant_name: string;
-  sku: string | null;
-  barcode: string | null;
-  price_satang: number;
-  cost_satang: number;
-  status: string;
-  product_id: string;
-  product_name: string;
-  category_id: string | null;
-  tax_rate_bp: number | null;
-  track_inventory: boolean;
-  product_status: string;
-  reorder_point: number;
-}
 
 interface PaymentMethodRow {
   code: string;
@@ -96,131 +80,19 @@ export async function performCheckout(
       const shiftRow = shift.rows[0];
       if (!shiftRow) throw new NexoraError('DOMAIN_SHIFT_NOT_OPEN');
 
-      const variantIds = [...new Set(input.items.map((i) => i.variantId))];
-      const variantsResult = await client.query<VariantRow>(
-        `SELECT v.id, v.name AS variant_name, v.sku, v.barcode, v.price_satang, v.cost_satang, v.status,
-                p.id AS product_id, p.name AS product_name, p.category_id, p.tax_rate_bp,
-                p.track_inventory, p.status AS product_status, p.reorder_point
-         FROM product_variants v
-         JOIN products p ON p.id = v.product_id
-         WHERE v.tenant_id = $1 AND v.id = ANY($2::uuid[])`,
-        [tenantId, variantIds],
-      );
-      if (variantsResult.rowCount !== variantIds.length) {
-        throw new NexoraError('NOT_FOUND', { entity: 'variant' });
-      }
-      const variants = new Map(variantsResult.rows.map((v) => [v.id, v]));
-      for (const variant of variants.values()) {
-        if (variant.status !== 'active' || variant.product_status !== 'active') {
-          throw new NexoraError('VALIDATION_FAILED', { reason: 'product_inactive', variantId: variant.id });
-        }
-      }
-
-      const promotions = await loadActivePromotions(client, tenantId);
-
-      let customer: {
-        id: string;
-        name: string;
-        phone: string | null;
-        tier: string;
-        points: number;
-      } | null = null;
-      if (input.customerId) {
-        const found = await client.query<{
-          id: string;
-          name: string;
-          phone: string | null;
-          tier: string;
-          points: number;
-        }>(
-          `SELECT c.id, c.name, c.phone, c.tier,
-                  COALESCE((SELECT sum(points_delta) FROM loyalty_ledger l WHERE l.customer_id = c.id), 0)::bigint AS points
-           FROM customers c WHERE c.tenant_id = $1 AND c.id = $2`,
-          [tenantId, input.customerId],
-        );
-        if (!found.rows[0]) throw new NexoraError('NOT_FOUND', { entity: 'customer' });
-        customer = { ...found.rows[0], points: Number(found.rows[0].points) };
-      }
-
-      const quoteInput = {
-        lines: input.items.map((item, index) => {
-          const variant = variants.get(item.variantId)!;
-          return {
-            key: String(index),
-            variantId: variant.id,
-            productId: variant.product_id,
-            categoryId: variant.category_id,
-            name: `${variant.product_name}${variant.variant_name && variant.variant_name !== 'มาตรฐาน' ? ` · ${variant.variant_name}` : ''}`,
-            sku: variant.sku ?? '',
-            qty: item.qty,
-            unitPriceSatang: Number(variant.price_satang),
-            unitCostSatang: Number(variant.cost_satang),
-            lineDiscount: item.lineDiscount ?? null,
-          };
-        }),
-        orderDiscount: input.orderDiscount ?? null,
-        couponCode: input.couponCode || null,
-        promotions,
-        taxRateBp: business.vatRateBp,
-        pricesIncludeTax: business.pricesIncludeTax,
-        memberDiscountBp: 0,
-      };
-      let quote = quoteCart(quoteInput);
-
-      if (input.couponCode && quote.ignoredCouponReason) {
-        throw new NexoraError('DOMAIN_COUPON_INVALID', { reason: quote.ignoredCouponReason });
-      }
-
-      const manualDiscount = quote.discountSatang - quote.appliedPromotions.reduce((s, p) => s + p.amountSatang, 0);
-      const limitSatang = Math.floor((quote.subtotalSatang * business.discountLimitBp) / 10_000);
-      if (manualDiscount > limitSatang && !ctx.permissions.has('sales.cancel')) {
-        throw new NexoraError('AUTH_PERMISSION_DENIED', { reason: 'discount_limit', limitSatang });
-      }
-
-      let pointsRedeemed = 0;
-      let pointsDiscountSatang = 0;
-      const requestedPoints = input.redeemPoints ?? 0;
-      if (requestedPoints > 0) {
-        if (!customer) throw new NexoraError('VALIDATION_FAILED', { field: 'redeemPoints', reason: 'customer_required' });
-        if (!business.loyaltyRedemptionEnabled) throw new NexoraError('DOMAIN_LOYALTY_DISABLED');
-        if (business.pointValueSatang <= 0) throw new NexoraError('DOMAIN_LOYALTY_DISABLED');
-        if (customer.points < requestedPoints) {
-          throw new NexoraError('DOMAIN_POINTS_INSUFFICIENT', {
-            available: customer.points,
-            requested: requestedPoints,
-          });
-        }
-        pointsRedeemed = Math.min(
-          requestedPoints,
-          Math.floor(quote.totalSatang / business.pointValueSatang),
-        );
-        if (pointsRedeemed <= 0) {
-          throw new NexoraError('DOMAIN_POINTS_INSUFFICIENT', { reason: 'nothing_to_redeem' });
-        }
-        pointsDiscountSatang = pointsRedeemed * business.pointValueSatang;
-        quote = quoteCart({ ...quoteInput, extraDiscountSatang: pointsDiscountSatang });
-      }
-
+      const priced = await pricePosCart(client, ctx, input);
+      const {
+        quote,
+        customer,
+        variants,
+        stockBefore,
+        warnings,
+        pointsRedeemed,
+        pointsDiscountSatang,
+      } = priced;
       const qtyByVariant = new Map<string, number>();
       for (const item of input.items) {
         qtyByVariant.set(item.variantId, (qtyByVariant.get(item.variantId) ?? 0) + item.qty);
-      }
-      const stockBefore = await onHandMap(client, tenantId, store.id, [...qtyByVariant.keys()]);
-      const warnings: string[] = [];
-      if (!input.offline) {
-        for (const [variantId, qty] of qtyByVariant) {
-          const variant = variants.get(variantId)!;
-          if (!variant.track_inventory) continue;
-          const available = stockBefore.get(variantId) ?? 0;
-          if (available < qty && !business.allowNegativeStock) {
-            throw new NexoraError('DOMAIN_INSUFFICIENT_STOCK', {
-              variantId,
-              available,
-              requested: qty,
-            });
-          }
-          if (available < qty) warnings.push('NEGATIVE_STOCK');
-        }
       }
 
       const methods = await client.query<PaymentMethodRow>(
@@ -238,7 +110,46 @@ export async function performCheckout(
         tenderedSatang: number;
         changeSatang: number;
         reference: string;
+        promptpaySessionId: string | null;
       }> = [];
+
+      const promptpaySessionIds = [
+        ...new Set(
+          input.payments
+            .map((payment) => payment.promptpaySessionId)
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
+      const promptpaySessions = new Map<
+        string,
+        {
+          id: string;
+          store_id: string;
+          operation_id: string;
+          sale_id: string | null;
+          reference: string;
+          amount_satang: number;
+          status: string;
+        }
+      >();
+      if (promptpaySessionIds.length > 0) {
+        const sessions = await client.query<{
+          id: string;
+          store_id: string;
+          operation_id: string;
+          sale_id: string | null;
+          reference: string;
+          amount_satang: number;
+          status: string;
+        }>(
+          `SELECT id, store_id, operation_id, sale_id, reference, amount_satang, status
+           FROM payment_sessions
+           WHERE tenant_id = $1 AND id = ANY($2::uuid[])
+           FOR UPDATE`,
+          [tenantId, promptpaySessionIds],
+        );
+        for (const row of sessions.rows) promptpaySessions.set(row.id, row);
+      }
 
       for (const payment of input.payments) {
         const method = methodMap.get(payment.method);
@@ -250,10 +161,44 @@ export async function performCheckout(
           throw new NexoraError('AUTH_PERMISSION_DENIED', { reason: 'payments.confirm' });
         }
         const amount = Math.floor(payment.amountSatang);
-        const reference = (payment.reference ?? '').trim();
+        let reference = (payment.reference ?? '').trim();
         if (method.type !== 'cash' && !reference) {
           throw new NexoraError('VALIDATION_FAILED', { field: 'payments.reference', method: method.code });
         }
+
+        let promptpaySessionId: string | null = payment.promptpaySessionId ?? null;
+        if (method.code === 'promptpay') {
+          if (!promptpaySessionId) {
+            throw new NexoraError('DOMAIN_PROMPTPAY_NOT_PAID', { reason: 'session_required' });
+          }
+          const session = promptpaySessions.get(promptpaySessionId);
+          if (!session) throw new NexoraError('DOMAIN_PROMPTPAY_NOT_PAID', { reason: 'session_missing' });
+          if (session.store_id !== store.id) throw new NexoraError('AUTH_STORE_FORBIDDEN');
+          if (session.sale_id) {
+            throw new NexoraError('DOMAIN_PROMPTPAY_ALREADY_LINKED');
+          }
+          if (session.operation_id !== input.operationId) {
+            throw new NexoraError('DOMAIN_PROMPTPAY_SESSION_STATE', { reason: 'operation_mismatch' });
+          }
+          if (session.status !== 'paid') {
+            throw new NexoraError('DOMAIN_PROMPTPAY_NOT_PAID', { status: session.status });
+          }
+          if (Number(session.amount_satang) !== amount) {
+            throw new NexoraError('DOMAIN_PROMPTPAY_AMOUNT_MISMATCH', {
+              expected: Number(session.amount_satang),
+              received: amount,
+            });
+          }
+          if (!reference) reference = session.reference;
+        } else if (promptpaySessionId) {
+          throw new NexoraError('VALIDATION_FAILED', {
+            field: 'payments.promptpaySessionId',
+            reason: 'not_promptpay_method',
+          });
+        } else {
+          promptpaySessionId = null;
+        }
+
         if (method.type === 'cash') {
           const tendered = payment.tenderedSatang ?? amount;
           if (!Number.isInteger(tendered) || tendered < amount) {
@@ -265,6 +210,7 @@ export async function performCheckout(
             tenderedSatang: tendered,
             changeSatang: tendered - amount,
             reference: '',
+            promptpaySessionId: null,
           });
           changeTotal += tendered - amount;
         } else {
@@ -274,6 +220,7 @@ export async function performCheckout(
             tenderedSatang: amount,
             changeSatang: 0,
             reference,
+            promptpaySessionId,
           });
         }
         appliedTotal += amount;
@@ -432,8 +379,9 @@ export async function performCheckout(
         const inserted = await client.query<{ id: string }>(
           `INSERT INTO payments
             (tenant_id, sale_id, method, method_name, status, amount_satang, tendered_satang,
-             change_satang, reference, provider, confirmed_by, confirmed_at, paid_at)
-           VALUES ($1,$2,$3,$4,'paid',$5,$6,$7,$8,'manual',$9,now(),now())
+             change_satang, reference, provider, confirmed_by, confirmed_at, paid_at,
+             promptpay_session_id)
+           VALUES ($1,$2,$3,$4,'paid',$5,$6,$7,$8,'manual',$9,now(),now(),$10)
            RETURNING id`,
           [
             tenantId,
@@ -445,10 +393,35 @@ export async function performCheckout(
             payment.changeSatang,
             payment.reference,
             ctx.user.id,
+            payment.promptpaySessionId,
           ],
         );
         const paymentId = inserted.rows[0]!.id;
         paymentIds.push(paymentId);
+        if (payment.promptpaySessionId) {
+          const linked = await client.query(
+            `UPDATE payment_sessions
+             SET sale_id = $1
+             WHERE tenant_id = $2 AND id = $3 AND sale_id IS NULL`,
+            [saleId, tenantId, payment.promptpaySessionId],
+          );
+          if (linked.rowCount !== 1) throw new NexoraError('DOMAIN_PROMPTPAY_ALREADY_LINKED');
+          await client.query(
+            `UPDATE payment_transactions SET sale_id = $1
+             WHERE tenant_id = $2 AND payment_session_id = $3`,
+            [saleId, tenantId, payment.promptpaySessionId],
+          );
+          await client.query(
+            `INSERT INTO payment_audit_logs (tenant_id, payment_session_id, action, actor_id, metadata)
+             VALUES ($1,$2,'sale_linked',$3,$4::jsonb)`,
+            [
+              tenantId,
+              payment.promptpaySessionId,
+              ctx.user.id,
+              JSON.stringify({ saleId, saleNumber: number, amountSatang: payment.amountSatang }),
+            ],
+          );
+        }
         await client.query(
           `INSERT INTO payment_events (tenant_id, payment_id, event, payload, actor_id)
            VALUES ($1,$2,$3,$4::jsonb,$5)`,

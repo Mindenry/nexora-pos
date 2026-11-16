@@ -131,6 +131,7 @@ export const checkoutPaymentSchema = z.object({
   amountSatang: moneySchema,
   tenderedSatang: moneySchema.optional(),
   reference: z.string().trim().max(120).optional().or(z.literal('')),
+  promptpaySessionId: uuidSchema.optional(),
 });
 export type CheckoutPaymentInput = z.infer<typeof checkoutPaymentSchema>;
 
@@ -157,6 +158,57 @@ export const quoteSchema = z.object({
   memberDiscountBp: z.number().int().min(0).max(5000).optional(),
 });
 export type QuoteRequestInput = z.infer<typeof quoteSchema>;
+
+// ── PromptPay ───────────────────────────────────────────────────────────────
+export const promptpayAccountInputSchema = z.object({
+  identifierType: z.enum(['mobile', 'national_id']),
+  identifier: z.string().trim().min(1).max(30),
+  displayName: z.string().trim().min(1).max(80),
+  isDefault: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+export type PromptPayAccountInput = z.infer<typeof promptpayAccountInputSchema>;
+
+export const promptpayAccountUpdateSchema = z.object({
+  identifierType: z.enum(['mobile', 'national_id']).optional(),
+  identifier: z.string().trim().min(1).max(30).optional(),
+  displayName: z.string().trim().min(1).max(80).optional(),
+  isDefault: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+export type PromptPayAccountUpdate = z.infer<typeof promptpayAccountUpdateSchema>;
+
+export const promptpaySessionCreateSchema = z.object({
+  operationId: uuidSchema,
+  items: z.array(checkoutLineSchema).min(1).max(200),
+  orderDiscount: discountSchema.nullish(),
+  couponCode: z.string().trim().max(40).optional().or(z.literal('')),
+  customerId: uuidSchema.nullish(),
+  redeemPoints: z.number().int().min(0).max(1_000_000).optional(),
+  accountId: uuidSchema.optional(),
+  amountSatang: moneySchema.optional(),
+  expiresInSeconds: z.number().int().min(60).max(900).optional(),
+});
+export type PromptPaySessionCreateInput = z.infer<typeof promptpaySessionCreateSchema>;
+
+export const promptpayConfirmSchema = z.object({
+  receivedAmountSatang: moneySchema.optional(),
+  reference: z.string().trim().max(120).optional().or(z.literal('')),
+  note: z.string().trim().max(500).optional().or(z.literal('')),
+  overrideExpired: z.boolean().optional(),
+});
+export type PromptPayConfirmInput = z.infer<typeof promptpayConfirmSchema>;
+
+export const promptpayCancelSchema = z.object({
+  reason: z.string().trim().max(300).optional().or(z.literal('')),
+});
+export type PromptPayCancelInput = z.infer<typeof promptpayCancelSchema>;
+
+export const promptpaySessionQuerySchema = listQuerySchema.extend({
+  status: z.enum(['pending', 'paid', 'cancelled', 'expired', 'failed', 'refunded']).optional(),
+  from: dateStringSchema.optional(),
+  to: dateStringSchema.optional(),
+});
 
 // ── Shifts & cash ───────────────────────────────────────────────────────────
 export const openShiftSchema = z.object({

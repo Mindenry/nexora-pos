@@ -16,6 +16,9 @@ ledger, RBAC, tenant isolation, offline cash sales and a real PostgreSQL schema.
 - React admin + POS terminal backed by the API. No hardcoded dashboard numbers.
 - Product images (uploaded or built-in artwork), customer-facing second display,
   loyalty points redemption, plan management.
+- PromptPay QR engine (mobile or national ID, static or fixed amount) with
+  encrypted accounts, staff-confirmed settlement, audit trail and sale binding —
+  no bank API or merchant account required for QR generation.
 - Checkout → payment → stock movement → receipt → shift cash, in one transaction.
 - Refunds linked to sale lines, stock transfers, purchase receiving, stock counts.
 - Reports computed from sales/ledger data (sales, profit, inventory, tax, staff).
@@ -67,4 +70,11 @@ role/databases first, then run the migrations. Backups require the separate
 - `docs/API.md` — endpoint reference
 - `docs/DEMO.md` — demo accounts and tour
 - `docs/SECURITY.md` — threat model and controls
+- `docs/PROMPTPAY_RESEARCH.md` — standards, libraries and verification options
+- `docs/PROMPTPAY_SPECIFICATION.md` — TLV/tag/CRC and reference vectors
+- `docs/PROMPTPAY_COMPATIBILITY.md` — what was and was not tested
+- `docs/PROMPTPAY_SECURITY.md` — payment-specific threat model
+- `docs/PROMPTPAY_IMPLEMENTATION.md` — architecture, schema and workflow
+- `docs/PROMPTPAY_API.md` — endpoint contract
+- `docs/PROMPTPAY_TEST_REPORT.md` — evidence
 - `ROADMAP.md` — milestone status

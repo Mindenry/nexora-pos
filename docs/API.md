@@ -94,6 +94,29 @@ recorded as a negative `loyalty_ledger` entry (`redeem`). The sale stores
 | POST | `/pos/stock-check` | sales.create | authoritative on-hand for cart variants |
 | POST | `/uploads/product-image` | products.update | PNG/JPEG/WebP base64 (≤1.3 MB), signature-checked, returns `/uploads/...` |
 
+Checkout payments may include `promptpaySessionId` for a `promptpay` tender. The
+server locks the session, requires `paid` status and an exact amount match, and
+links it to exactly one sale. See `docs/PROMPTPAY_API.md` for the full contract.
+
+## PromptPay
+
+| Method | Path | Permission | Notes |
+| --- | --- | --- | --- |
+| GET | `/promptpay/accounts` | promptpay.accounts.read | masked only |
+| POST | `/promptpay/accounts` | promptpay.accounts.manage | encrypted identifier |
+| PATCH | `/promptpay/accounts/:id` | promptpay.accounts.manage | identifier optional |
+| DELETE | `/promptpay/accounts/:id` | promptpay.accounts.manage | soft delete |
+| POST | `/promptpay/accounts/:id/default` | promptpay.accounts.manage | one default |
+| GET | `/promptpay/accounts/:id/static-qr` | promptpay.accounts.read | reusable, no amount |
+| POST | `/promptpay/sessions` | sales.create | server-priced dynamic QR |
+| GET | `/promptpay/sessions` | payments.read | history + summary |
+| GET | `/promptpay/sessions/:id` | payments.read | QR while pending, audit, sale |
+| POST | `/promptpay/sessions/:id/confirm` | payments.confirm | manual settlement |
+| POST | `/promptpay/sessions/:id/cancel` | payments.confirm | pending/expired only |
+| POST | `/promptpay/sessions/:id/regenerate` | payments.confirm | new reference/expiry |
+
+Full request/response and error codes: `docs/PROMPTPAY_API.md`.
+
 ## Sales, refunds, shifts
 
 | Method | Path | Permission |

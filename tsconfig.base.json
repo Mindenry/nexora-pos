@@ -18,7 +18,9 @@
     "paths": {
       "@nexora/shared": ["packages/shared/src/index.ts"],
       "@nexora/db": ["packages/db/src/index.ts"],
-      "@nexora/db/*": ["packages/db/src/*"]
+      "@nexora/db/*": ["packages/db/src/*"],
+      "@nexora/promptpay": ["packages/promptpay/src/index.ts"],
+      "@nexora/promptpay/*": ["packages/promptpay/src/*"]
     }
   }
 }

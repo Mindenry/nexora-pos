@@ -143,8 +143,9 @@ export function authRoutes(db: Db, config: Config, requireAuth: RequestHandler):
          VALUES
            ($1,$2,'cash','เงินสด','cash',false,true,10),
            ($1,$2,'transfer','โอนเงิน','transfer',true,false,20),
+           ($1,$2,'promptpay','พร้อมเพย์','qr',true,false,25),
            ($1,$2,'card','บัตรเครดิต/เดบิต','card',true,false,30),
-           ($1,$2,'qr','พร้อมเพย์ / QR','qr',true,false,40)`,
+           ($1,$2,'qr','QR อื่น ๆ','qr',true,false,40)`,
         [tenantId, storeId],
       );
 

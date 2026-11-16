@@ -16,6 +16,9 @@ const PurchasingPage = lazy(() => import('./pages/purchasing').then((m) => ({ de
 const CustomersPage = lazy(() => import('./pages/customers').then((m) => ({ default: m.CustomersPage })));
 const PromotionsPage = lazy(() => import('./pages/promotions').then((m) => ({ default: m.PromotionsPage })));
 const ShiftsPage = lazy(() => import('./pages/shifts').then((m) => ({ default: m.ShiftsPage })));
+const PromptPayPage = lazy(() =>
+  import('./pages/promptpay').then((m) => ({ default: m.PromptPayPage })),
+);
 const ReportsPage = lazy(() => import('./pages/reports').then((m) => ({ default: m.ReportsPage })));
 const EmployeesPage = lazy(() => import('./pages/employees').then((m) => ({ default: m.EmployeesPage })));
 const SettingsPage = lazy(() => import('./pages/settings').then((m) => ({ default: m.SettingsPage })));
@@ -100,6 +103,7 @@ export const router = createBrowserRouter([
           { path: 'sales', element: <SalesPage /> },
           { path: 'sales/:id', element: <SaleDetailPage /> },
           { path: 'shifts', element: <ShiftsPage /> },
+          { path: 'promptpay', element: <PromptPayPage /> },
           { path: 'products', element: <ProductsPage /> },
           { path: 'inventory', element: <InventoryPage /> },
           { path: 'purchasing', element: <PurchasingPage /> },

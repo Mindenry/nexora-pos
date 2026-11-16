@@ -11,6 +11,7 @@
 | `NODE_ENV` | no | `development`, `test`, `production` |
 | `LOG_LEVEL` | no | `debug`, `info`, `warn`, `error` |
 | `UPLOAD_DIR` | no | persistent directory for uploaded product images; default `./uploads` under the API working directory |
+| `PROMPTPAY_ENCRYPTION_KEY` | recommended | 32-byte key (64 hex or base64) for encrypted PromptPay identifiers and payloads. If absent, a domain-separated key is derived from `SESSION_SECRET` |
 
 The API loads the nearest `.env` walking up from its working directory. In
 production prefer the platform secret manager; never bake secrets into the web
@@ -53,6 +54,31 @@ browser ── HTTPS ── reverse proxy ── /api → node dist/index.js (AP
    proxy as well as in the API.
 6. Health check `/api/health`; alert on non-200 and on `INFRA_DB_UNAVAILABLE`.
 7. Do not horizontally scale until rate limiting and sessions move to Redis.
+
+## PromptPay operations
+
+- **Key**: set `PROMPTPAY_ENCRYPTION_KEY` from the platform secret manager in
+  production. Back it up separately from database backups: losing it makes
+  stored identifiers and pending-QR payloads unrecoverable. Rotating it requires
+  decrypting and re-encrypting every row; no automated rotation ships in v1.
+- **Accounts**: use only a proxy registered with PromptPay and verify the
+  recipient name in the banking app. The app never claims registration or
+  ownership. One active default per tenant; deleting a default promotes the
+  oldest remaining active account.
+- **Verification**: a QR is `pending` until a staff member with
+  `payments.confirm` checks the incoming amount and confirms. Expired QRs cannot
+  be confirmed without an explicit override + note, which is audited.
+- **Reconciliation**: monitor `payment_sessions` that are `paid` but have
+  `sale_id IS NULL`; these mean money was confirmed but checkout did not finish.
+  Refund or re-link them operationally.
+- **Refunds**: full refund/void marks the session and transaction `refunded`.
+  Partial refunds leave the session `paid` and the payment row
+  `partially_refunded`; return the money through your bank process.
+- **Backups**: `payment_sessions.payload_encrypted` is encrypted, but the
+  database backup still contains payment amounts and masked identifiers. Encrypt
+  backups and restrict access.
+- **No bank API**: QR generation needs no merchant account. Automatic settlement
+  needs a contracted provider/webhook; the manual flow is the honest default.
 
 ## iPad / tablet counter setup
 

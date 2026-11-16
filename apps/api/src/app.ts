@@ -15,6 +15,7 @@ import { inventoryRoutes } from './modules/inventory';
 import { peopleRoutes } from './modules/people';
 import { platformRoutes } from './modules/platform';
 import { posRoutes } from './modules/pos';
+import { promptpayRoutes } from './modules/promptpay';
 import { promotionRoutes } from './modules/promotions';
 import { purchasingRoutes } from './modules/purchasing';
 import { reportRoutes } from './modules/reports';
@@ -22,6 +23,7 @@ import { salesRoutes } from './modules/sales';
 import { notificationRoutes, settingsRoutes } from './modules/settings';
 import { shiftRoutes } from './modules/shifts';
 import { uploadRoutes, UPLOAD_DIR } from './modules/uploads';
+import { configurePromptPayCrypto } from './services/promptpay-crypto';
 
 export interface AppDeps {
   db: Db;
@@ -29,6 +31,10 @@ export interface AppDeps {
 }
 
 export function createApp({ db, config }: AppDeps): Express {
+  configurePromptPayCrypto({
+    encryptionKey: config.promptpayEncryptionKey,
+    sessionSecret: config.sessionSecret,
+  });
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.isProd ? 1 : false);
@@ -140,6 +146,7 @@ export function createApp({ db, config }: AppDeps): Express {
   protectedApi.use(inventoryRoutes());
   protectedApi.use(shiftRoutes());
   protectedApi.use(posRoutes());
+  protectedApi.use(promptpayRoutes());
   protectedApi.use(salesRoutes());
   protectedApi.use(purchasingRoutes());
   protectedApi.use(customerRoutes());

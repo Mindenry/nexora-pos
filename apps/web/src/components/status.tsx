@@ -48,6 +48,32 @@ export function TransferStatusBadge({ status }: { status: string }) {
   return <Badge tone={item.tone}>{t(item.th, item.en)}</Badge>;
 }
 
+const PROMPTPAY_LABELS: Record<
+  string,
+  { th: string; en: string; tone: 'jade' | 'amber' | 'danger' | 'neutral' | 'info' }
+> = {
+  pending: { th: 'รอยืนยัน', en: 'Pending', tone: 'amber' },
+  paid: { th: 'ชำระแล้ว', en: 'Paid', tone: 'jade' },
+  cancelled: { th: 'ยกเลิก', en: 'Cancelled', tone: 'neutral' },
+  expired: { th: 'หมดอายุ', en: 'Expired', tone: 'danger' },
+  failed: { th: 'ล้มเหลว', en: 'Failed', tone: 'danger' },
+  refunded: { th: 'คืนเงินแล้ว', en: 'Refunded', tone: 'info' },
+};
+
+export function PromptPayStatusBadge({ status }: { status: string }) {
+  const { t } = useLang();
+  const item = PROMPTPAY_LABELS[status] ?? {
+    th: status,
+    en: status,
+    tone: 'neutral' as const,
+  };
+  return (
+    <Badge tone={item.tone} dot={status === 'pending' || status === 'paid'}>
+      {t(item.th, item.en)}
+    </Badge>
+  );
+}
+
 export function ShiftStatusBadge({ status }: { status: string }) {
   const { t } = useLang();
   return status === 'open' ? (

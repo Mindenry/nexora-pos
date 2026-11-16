@@ -54,6 +54,35 @@ The platform admin has no tenant and lands on `/platform`.
 10. **Platform** — suspend a tenant (revokes sessions), change plan, edit plan
     definitions, inspect money integrity.
 
+## PromptPay rehearsal
+
+> The demo seed deliberately does **not** create a PromptPay receiving account:
+> shipping a demo QR that points to a stranger's phone/ID could send real money
+> to the wrong person. Add your own proxy before testing.
+
+1. Sign in as owner/manager → **พร้อมเพย์ → บัญชีรับเงิน → เพิ่มบัญชี**.
+2. Enter the mobile number or national ID that is **already registered with
+   PromptPay**, give it a counter name, and save. The list only shows a masked
+   value; the full identifier is encrypted at rest.
+3. Verify the recipient name in your banking app. A checksum does not prove
+   ownership.
+4. Generate a reusable no-amount QR from the account card
+   (**QR ไม่ระบุยอด**) to test static QR printing/download.
+5. At the POS: add items → **ชำระเงิน** → choose **พร้อมเพย์** → **สร้าง QR**.
+6. The customer scans and pays the exact amount. Confirm the money in your bank
+   app **before** pressing **ยืนยันรับชำระเงิน** and ticking the confirmation.
+7. Press **ยืนยันการชำระเงิน**; the sale is created and the QR is linked to
+   exactly one receipt.
+8. Open **พร้อมเพย์ → ประวัติการชำระเงิน** to see status, verifier, slip
+   reference, linked sale and the audit timeline.
+9. Cancel a pending QR or let it expire (5 minutes); checkout stays disabled
+   until a valid payment is verified.
+10. Fully refund the sale and confirm the session becomes **คืนเงินแล้ว**.
+
+Automatic settlement is not enabled. The demo never treats QR generation,
+scanning or expiry as proof of payment. See `docs/PROMPTPAY_*` for the full
+research, specification, security and test evidence.
+
 ## iPad Pro / touch counter
 
 1. Open the web app in Safari on the iPad, sign in, then **Share → Add to Home
