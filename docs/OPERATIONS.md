@@ -54,6 +54,26 @@ browser ── HTTPS ── reverse proxy ── /api → node dist/index.js (AP
 6. Health check `/api/health`; alert on non-200 and on `INFRA_DB_UNAVAILABLE`.
 7. Do not horizontally scale until rate limiting and sessions move to Redis.
 
+## iPad / tablet counter setup
+
+1. Serve the app over HTTPS on the same origin as `/api` (Safari requires a
+   secure origin for full-screen web apps and camera-free operation).
+2. On iPadOS Safari, open the store URL, sign in, then **Share → Add to Home
+   Screen**. The manifest starts the installed app at `/pos` in standalone mode
+   with a themed status bar and safe-area padding.
+3. Rotate to landscape for the 3-column product grid plus cart; portrait keeps a
+   3-column grid with the cart beside it at 1024pt. Both were checked on an
+   iPad Pro 11" viewport (1194×834 and 1024×1366) with touch input.
+4. Keep the terminal page open during the day. The PWA ships a manifest and
+   icons, but **no service worker yet**: a cold launch with no network does not
+   load the app shell. Offline cash sales work only while the page is already
+   loaded, backed by the IndexedDB outbox.
+5. Barcode scanners must use HID keyboard mode with an Enter suffix. The POS
+   captures scans globally without stealing focus; stock counts and PO receiving
+   have dedicated scan fields. Test one scan per device after pairing.
+6. Receipt/X/Z printing uses the browser print dialog targeting an 80 mm roll
+   printer; allow pop-ups/iframes for the print helper.
+
 ## Backup and restore
 
 RPO/RTO for the demo: RPO 24h, RTO < 1h. Production target: PITR with WAL

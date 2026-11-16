@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRightLeft,
   Boxes,
   ClipboardCheck,
   RefreshCw,
+  ScanBarcode,
   SlidersHorizontal,
   Truck,
 } from 'lucide-react';
 import { uuidv7 } from '@nexora/shared';
 import { api, errorMessage, qs } from '../lib/api';
+import { feedback } from '../lib/feedback';
 import { useAuth } from '../lib/auth';
 import { useLang } from '../lib/i18n';
 import { useFormat } from '../lib/format';
@@ -135,6 +137,9 @@ export function InventoryPage() {
   const [countOpen, setCountOpen] = useState(false);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [countNote, setCountNote] = useState('');
+  const [scanValue, setScanValue] = useState('');
+  const [scannedIds, setScannedIds] = useState<Set<string>>(new Set());
+  const scanRef = useRef<HTMLInputElement>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState('');
   const [transferNote, setTransferNote] = useState('');
@@ -234,7 +239,36 @@ export function InventoryPage() {
     const initial: Record<string, number> = {};
     for (const row of list) initial[row.variantId] = row.onHand;
     setCounts(initial);
+    setScanValue('');
+    setScannedIds(new Set());
     setCountOpen(true);
+    window.setTimeout(() => scanRef.current?.focus(), 250);
+  };
+
+  const handleCountScan = (value?: string) => {
+    // Read the live input value so a fast keyboard-wedge scanner never loses
+    // characters to a pending React state update.
+    const code = (value ?? scanValue).trim();
+    if (!code) return;
+    const row = (allStock.data?.data ?? []).find(
+      (item) => item.barcode === code || item.sku === code,
+    );
+    if (!row) {
+      feedback('error');
+      toast.error(t('ไม่พบสินค้าในสต๊อก', 'Product not found'), code);
+      setScanValue('');
+      scanRef.current?.focus();
+      return;
+    }
+    const firstScan = !scannedIds.has(row.variantId);
+    setCounts((prev) => ({
+      ...prev,
+      [row.variantId]: firstScan ? 1 : (prev[row.variantId] ?? 0) + 1,
+    }));
+    setScannedIds((prev) => new Set(prev).add(row.variantId));
+    setScanValue('');
+    feedback('scan');
+    scanRef.current?.focus();
   };
 
   const submitCount = async () => {
@@ -655,9 +689,35 @@ export function InventoryPage() {
         }
       >
         <div className="space-y-3">
-          <Field label={t('หมายเหตุ', 'Note')}>
-            <Input value={countNote} onChange={(event) => setCountNote(event.target.value)} placeholder={t('รอบนับ / ผู้ร่วมนับ', 'Count round / witnesses')} />
-          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
+              label={t('สแกนเพื่อนับ', 'Scan to count')}
+              hint={t(
+                'เริ่มนับจาก 0 แล้วสแกนทีละชิ้น หรือแก้ตัวเลขในตารางได้',
+                'First scan starts at 1; edit the table for manual counts.',
+              )}
+            >
+              <Input
+                ref={scanRef}
+                value={scanValue}
+                onChange={(event) => setScanValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleCountScan(event.currentTarget.value);
+                  }
+                }}
+                placeholder={t('ยิงบาร์โค้ด / SKU แล้ว Enter', 'Scan barcode / SKU and press Enter')}
+                leadingIcon={<ScanBarcode className="h-4 w-4" />}
+              />
+            </Field>
+            <Field label={t('หมายเหตุ', 'Note')}>
+              <Input value={countNote} onChange={(event) => setCountNote(event.target.value)} placeholder={t('รอบนับ / ผู้ร่วมนับ', 'Count round / witnesses')} />
+            </Field>
+          </div>
+          <p className="text-[10.5px] text-faint">
+            {t('นับแล้ว', 'Scanned')} {scannedIds.size} {t('รายการ', 'items')}
+          </p>
           <div className="max-h-[50vh] overflow-y-auto rounded-lg border border-line">
             <Table>
               <thead>

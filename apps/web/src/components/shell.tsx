@@ -726,7 +726,7 @@ export function AppShell() {
 
       <div className={cn('min-h-screen transition-[padding] duration-200', collapsed ? 'lg:pl-[68px]' : 'lg:pl-[236px]')}>
         <header className="sticky top-0 z-30 border-b border-line bg-bg">
-          <div className="flex h-14 items-center gap-2 px-3 sm:px-5">
+          <div className="flex min-h-14 items-center gap-2 px-3 pt-[env(safe-area-inset-top)] sm:px-5">
             <button
               type="button"
               className="rounded-md p-2 text-muted hover:bg-surface-3 lg:hidden"

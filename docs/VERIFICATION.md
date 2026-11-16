@@ -52,19 +52,31 @@ runs were fixed before the final pass; this file records the final evidence.
 
 ## End-to-end (real Chrome via Playwright)
 
-`npx playwright test` → **10 passed (25–35s)**:
+`npx playwright test` → **17 passed (44s)**:
 
-1. Login → POS → open shift → tap product → cash checkout → receipt number issued
+1. iPad Pro 11" touch (1194×834): tap product → keypad quantity 4 → touch pay →
+   receipt issued → new sale.
+2. iPad layout keeps cart, mute, customer display and fullscreen reachable.
+3. iPad favourite star shows the quick strip and survives reload.
+4. iPad denomination cash counter totals ฿2,300.00 and exposes **พิมพ์ X**.
+5. Keyboard-wedge scanner types `8850000000001` outside an input and adds the
+   product without focusing search.
+6. Stock count scan `8850000000013` starts the counted quantity at 1.
+7. Purchase order approve → scan `8850000000006` → receive footer ฿9.00.
+8. Login → POS → open shift → tap product → cash checkout → receipt number issued
    → new sale.
-2. Sales list shows the completed sale and opens detail with items and payments.
-3. Language switch TH → EN updates reports (“Gross sales”).
-4. Mobile 390×844 dashboard and POS render.
-5. Keyboard-only: F2 focuses search, Enter adds, F4 opens payment, Escape closes.
-6. Offline: cash sale queue → reconnect → one POST `/pos/checkout` 201 → synced.
-7. Customer display: second window mirrors cart, then shows paid total and thank-you.
-8. 1024×768 cashier layout keeps product grid, cart, display and fullscreen controls.
-9. Loyalty: attach a customer, redeem points, receipt shows used/earned points.
-10. Platform admin console loads tenant overview.
+9. Sales list shows the completed sale and opens detail with items and payments.
+10. Language switch TH → EN updates reports (“Gross sales”).
+11. Mobile 390×844 dashboard and POS render.
+12. Keyboard-only: F2 focuses search, Enter adds, F4 opens payment, Escape closes.
+13. Offline: cash sale queue → reconnect → one POST `/pos/checkout` 201 → synced.
+14. Customer display: second window mirrors cart, then shows paid total and thank-you.
+15. 1024×768 cashier layout keeps product grid, cart, display and fullscreen controls.
+16. Loyalty: attach a customer, redeem points, receipt shows used/earned points.
+17. Platform admin console loads tenant overview.
+
+iPad visual captures: `test-results/visual/pos-ipad-landscape.png`,
+`shift-cashcount-ipad.png`, `pos-ipad-portrait.png`.
 
 Screenshots: `test-results/ui/*.png` (login, dashboard, products, inventory,
 sales, shifts, reports, customers, purchasing, promotions, employees, settings,
@@ -96,6 +108,12 @@ against `max(number)` before accepting traffic post-restore (documented).
   POS wraps categories, keeps a 3-column grid and bottom cart bar.
 - 390×844: dashboard cards stack; store switcher hidden to keep the header usable;
   POS uses a two-column product grid and a bottom cart bar.
+- iPad Pro 11" landscape (1194×834, touch): 3-column product grid, favourites
+  strip, cart sidebar, 36–48 px controls, no overlap of stock badge and star.
+- iPad Pro 11" portrait (1024×1366, touch): 3-column grid with cart sidebar and
+  a 2-row category rail; shift modal fits without scrolling the footer.
+- iPad manifest, icons, safe-area padding and 16 px touch inputs verified; the
+  app installs to the Home Screen and opens at `/pos` in standalone mode.
 - 1920×1080: dashboard content stays capped and readable.
 - Customer display checked at 1280×800 and 1024×768 (idle + cart).
 - Dark mode checked on dashboard.

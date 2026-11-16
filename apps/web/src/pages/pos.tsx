@@ -9,6 +9,7 @@ import {
   CircleCheck,
   CloudOff,
   CreditCard,
+  Delete,
   LayoutDashboard,
   LogOut,
   Maximize2,
@@ -23,11 +24,14 @@ import {
   RefreshCw,
   ScanBarcode,
   Search,
+  Star,
   Store,
   Tag,
   Trash2,
   UserPlus,
   Users,
+  Volume2,
+  VolumeX,
   Wallet,
   Wifi,
   X,
@@ -54,6 +58,10 @@ import {
 import { printReceipt } from '../lib/print';
 import { publishDisplay } from '../lib/display';
 import { categoryArt } from '../lib/art';
+import { feedback, isSoundEnabled, setSoundEnabled } from '../lib/feedback';
+import { useBarcodeScanner } from '../lib/use-scanner';
+import { CashCountHelper } from '../components/cash-count';
+import { printShiftReport } from '../lib/shift-print';
 import { MoneyInput } from '../components/money-input';
 import { ReceiptView, type ReceiptSnapshot } from '../components/receipt';
 import {
@@ -98,13 +106,21 @@ interface PosProduct {
 }
 
 interface ShiftSummary {
-  shift: { id: string; business_date: string; opened_at: string; status: string };
+  shift: { id: string; business_date: string; opened_at: string; closed_at?: string | null; status: string };
   salesCount: number;
   salesTotalSatang: number;
+  discountSatang?: number;
+  taxSatang?: number;
+  refundTotalSatang?: number;
   openingCashSatang: number;
+  cashSalesSatang?: number;
+  cashInSatang?: number;
+  cashOutSatang?: number;
   expectedCashSatang: number;
   varianceSatang: number | null;
   countedCashSatang: number | null;
+  payments?: Array<{ method: string; methodName: string; count: number; amountSatang: number }>;
+  topItems?: Array<{ name: string; qty: number; amountSatang: number }>;
 }
 
 interface PosBootstrap {
@@ -240,6 +256,23 @@ export function PosPage() {
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
   const [syncing, setSyncing] = useState(false);
   const syncingRef = useRef(false);
+  const [soundOn, setSoundOn] = useState(() => isSoundEnabled());
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('nexora.pos.favorites') ?? '[]') as string[];
+    } catch {
+      return [];
+    }
+  });
+  const [recentProducts, setRecentProducts] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('nexora.pos.recent') ?? '[]') as string[];
+    } catch {
+      return [];
+    }
+  });
+  const [qtyTarget, setQtyTarget] = useState<CartLine | null>(null);
+  const [qtyBuffer, setQtyBuffer] = useState('');
 
   const searchRef = useRef<HTMLInputElement>(null);
   const autoShiftPrompted = useRef(false);
@@ -302,8 +335,30 @@ export function PosPage() {
   }, []);
 
   useEffect(() => {
-    void refreshOutbox();
-  }, [refreshOutbox]);
+    localStorage.setItem('nexora.pos.favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('nexora.pos.recent', JSON.stringify(recentProducts));
+  }, [recentProducts]);
+
+  const markRecent = useCallback((productId: string) => {
+    setRecentProducts((prev) => [productId, ...prev.filter((id) => id !== productId)].slice(0, 12));
+  }, []);
+
+  const toggleFavorite = (productId: string) => {
+    setFavorites((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [productId, ...prev].slice(0, 20),
+    );
+    feedback('scan');
+  };
+
+  const toggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+    if (next) feedback('success');
+  };
 
   useEffect(() => {
     if (data && !data.shift && !autoShiftPrompted.current && online) {
@@ -442,19 +497,23 @@ export function PosPage() {
     (product: PosProduct, variant: PosVariant) => {
       const available = stockOf(variant);
       if (variant.trackInventory && available <= 0) {
+        feedback('error');
         toast.error(t('สินค้าหมดสต๊อก', 'Out of stock'), `${product.name} · ${variant.name}`);
         return;
       }
+      const existing = cart.find((line) => line.variantId === variant.id);
+      if (existing && variant.trackInventory && existing.qty + 1 > available) {
+        feedback('error');
+        toast.error(t('จำนวนเกินสต๊อกที่มี', 'Exceeds available stock'), `${available}`);
+        return;
+      }
       setCart((prev) => {
-        const existing = prev.find((line) => line.variantId === variant.id);
-        if (existing) {
-          const nextQty = existing.qty + 1;
-          if (variant.trackInventory && nextQty > available) {
-            toast.error(t('จำนวนเกินสต๊อกที่มี', 'Exceeds available stock'), `${available}`);
-            return prev;
-          }
+        const current = prev.find((line) => line.variantId === variant.id);
+        if (current) {
           return prev.map((line) =>
-            line.variantId === variant.id ? { ...line, qty: nextQty, onHand: available } : line,
+            line.variantId === variant.id
+              ? { ...line, qty: line.qty + 1, onHand: available }
+              : line,
           );
         }
         return [
@@ -475,8 +534,10 @@ export function PosPage() {
           },
         ];
       });
+      markRecent(product.id);
+      feedback('success');
     },
-    [stockOf, t, toast],
+    [cart, markRecent, stockOf, t, toast],
   );
 
   const addProduct = useCallback(
@@ -487,6 +548,10 @@ export function PosPage() {
     [addVariant],
   );
 
+  useEffect(() => {
+    void refreshOutbox();
+  }, [refreshOutbox]);
+
   const changeQty = (variantId: string, delta: number) => {
     setCart((prev) =>
       prev
@@ -495,6 +560,7 @@ export function PosPage() {
           const next = line.qty + delta;
           if (next <= 0) return null;
           if (line.trackInventory && next > line.onHand) {
+            feedback('error');
             toast.error(t('จำนวนเกินสต๊อกที่มี', 'Exceeds available stock'), `${line.onHand}`);
             return line;
           }
@@ -502,6 +568,27 @@ export function PosPage() {
         })
         .filter((line): line is CartLine => line !== null),
     );
+  };
+
+  const setLineQty = (variantId: string, requestedQty: number) => {
+    setCart((prev) =>
+      prev.map((line) => {
+        if (line.variantId !== variantId) return line;
+        const max = line.trackInventory ? line.onHand : 9999;
+        const next = Math.max(1, Math.min(max, Math.trunc(requestedQty) || 1));
+        if (line.trackInventory && requestedQty > line.onHand) {
+          feedback('error');
+          toast.error(t('จำนวนเกินสต๊อกที่มี', 'Exceeds available stock'), `${line.onHand}`);
+        }
+        return { ...line, qty: next };
+      }),
+    );
+    feedback('success');
+  };
+
+  const openQtyKeypad = (line: CartLine) => {
+    setQtyTarget(line);
+    setQtyBuffer(String(line.qty));
   };
 
   const filteredProducts = useMemo(() => {
@@ -519,74 +606,116 @@ export function PosPage() {
     });
   }, [data, search, category]);
 
+  const quickProducts = useMemo(() => {
+    if (!data) return [];
+    const ids = favorites.length > 0 ? favorites : recentProducts;
+    return ids
+      .map((id) => data.catalog.products.find((product) => product.id === id))
+      .filter((product): product is PosProduct => Boolean(product))
+      .slice(0, 8);
+  }, [data, favorites, recentProducts]);
+
+  const addByCode = useCallback(
+    async (rawCode: string): Promise<boolean> => {
+      if (!data) return false;
+      const code = rawCode.trim();
+      if (!code) return false;
+      const exact = data.catalog.products
+        .flatMap((product) => product.variants.map((variant) => ({ product, variant })))
+        .find(({ variant }) => variant.barcode === code || variant.sku === code);
+      if (exact) {
+        addVariant(exact.product, exact.variant);
+        return true;
+      }
+      try {
+        const result = await api<
+          Array<{
+            variantId: string;
+            productId: string;
+            productName: string;
+            variantName: string;
+            sku: string | null;
+            priceSatang: number;
+            onHand: number;
+            trackInventory: boolean;
+          }>
+        >(`/pos/lookup?code=${encodeURIComponent(code)}`);
+        const first = result.data[0];
+        if (!first) {
+          feedback('error');
+          toast.info(t('ไม่พบสินค้า', 'No product found'), code);
+          return false;
+        }
+        const found = variantsById.get(first.variantId);
+        if (found) {
+          addVariant(found.product, found.variant);
+        } else {
+          addVariant(
+            {
+              id: first.productId,
+              name: first.productName,
+              categoryId: null,
+              imageUrl: '',
+              trackInventory: first.trackInventory,
+              reorderPoint: 0,
+              taxRateBp: null,
+              onHand: first.onHand,
+              variants: [],
+            },
+            {
+              id: first.variantId,
+              name: first.variantName,
+              sku: first.sku,
+              barcode: code,
+              priceSatang: first.priceSatang,
+              costSatang: 0,
+              attributes: {},
+              onHand: first.onHand,
+              trackInventory: first.trackInventory,
+            },
+          );
+        }
+        return true;
+      } catch (error) {
+        feedback('error');
+        toast.error(t('ค้นหาไม่สำเร็จ', 'Lookup failed'), errorMessage(error, locale));
+        return false;
+      }
+    },
+    [addVariant, data, locale, t, toast, variantsById],
+  );
+
   const submitSearch = async () => {
     if (!search.trim() || !data) return;
     const code = search.trim();
     const exact = data.catalog.products
       .flatMap((product) => product.variants.map((variant) => ({ product, variant })))
       .find(({ variant }) => variant.barcode === code || variant.sku === code);
-    if (exact) {
-      addVariant(exact.product, exact.variant);
-      setSearch('');
-      return;
-    }
-    if (filteredProducts.length === 1) {
+    if (!exact && filteredProducts.length === 1) {
       addProduct(filteredProducts[0]!);
       setSearch('');
       return;
     }
-    try {
-      const result = await api<
-        Array<{
-          variantId: string;
-          productId: string;
-          productName: string;
-          variantName: string;
-          sku: string | null;
-          priceSatang: number;
-          onHand: number;
-          trackInventory: boolean;
-        }>
-      >(`/pos/lookup?code=${encodeURIComponent(code)}`);
-      const first = result.data[0];
-      if (!first) {
-        toast.info(t('ไม่พบสินค้า', 'No product found'), code);
-        return;
-      }
-      const found = variantsById.get(first.variantId);
-      if (found) {
-        addVariant(found.product, found.variant);
-      } else {
-        addVariant(
-          {
-            id: first.productId,
-            name: first.productName,
-            categoryId: null,
-            imageUrl: '',
-            trackInventory: first.trackInventory,
-            reorderPoint: 0,
-            taxRateBp: null,
-            onHand: first.onHand,
-            variants: [],
-          },
-          {
-            id: first.variantId,
-            name: first.variantName,
-            sku: first.sku,
-            barcode: code,
-            priceSatang: first.priceSatang,
-            costSatang: 0,
-            attributes: {},
-            onHand: first.onHand,
-            trackInventory: first.trackInventory,
-          },
-        );
-      }
-      setSearch('');
-    } catch (error) {
-      toast.error(t('ค้นหาไม่สำเร็จ', 'Lookup failed'), errorMessage(error, locale));
-    }
+    const added = await addByCode(code);
+    if (added) setSearch('');
   };
+
+  const scannerEnabled =
+    Boolean(data) &&
+    !checkoutOpen &&
+    !success &&
+    !shiftOpen &&
+    !shiftPanelOpen &&
+    !variantPicker &&
+    !customerOpen &&
+    !heldOpen &&
+    !syncOpen &&
+    !discountTarget &&
+    !qtyTarget;
+
+  useBarcodeScanner((code) => {
+    void addByCode(code);
+  }, scannerEnabled);
 
   const paymentMethods = data?.paymentMethods ?? [];
   const defaultMethod = paymentMethods.find((m) => m.type === 'cash') ?? paymentMethods[0];
@@ -1083,19 +1212,27 @@ export function PosPage() {
                       <button
                         type="button"
                         onClick={() => changeQty(line.variantId, -1)}
-                        className="flex h-7 w-7 items-center justify-center text-muted hover:bg-surface-2"
+                        className="flex h-9 w-9 items-center justify-center text-muted hover:bg-surface-2"
                         aria-label={t('ลด', 'Decrease')}
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-3.5 w-3.5" />
                       </button>
-                      <span className="num w-8 text-center text-[12px] font-medium">{line.qty}</span>
+                      <button
+                        type="button"
+                        onClick={() => openQtyKeypad(line)}
+                        className="num flex h-9 min-w-10 items-center justify-center border-x border-line px-1 text-[13px] font-semibold hover:bg-surface-2"
+                        aria-label={t('แก้จำนวน', 'Edit quantity')}
+                        title={t('แตะเพื่อใส่จำนวน', 'Tap to enter quantity')}
+                      >
+                        {line.qty}
+                      </button>
                       <button
                         type="button"
                         onClick={() => changeQty(line.variantId, 1)}
-                        className="flex h-7 w-7 items-center justify-center text-muted hover:bg-surface-2"
+                        className="flex h-9 w-9 items-center justify-center text-muted hover:bg-surface-2"
                         aria-label={t('เพิ่ม', 'Increase')}
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
                     <div className="flex items-center gap-2">
@@ -1241,8 +1378,8 @@ export function PosPage() {
   );
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-bg">
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-3">
+    <div className="pos-terminal flex h-[100dvh] flex-col overflow-hidden bg-bg">
+      <header className="flex min-h-14 shrink-0 items-center gap-2 border-b border-line bg-surface px-3 pt-[env(safe-area-inset-top)]">
         <button
           type="button"
           onClick={() => navigate('/dashboard')}
@@ -1301,6 +1438,16 @@ export function PosPage() {
         <span className="num hidden text-[12px] text-muted xl:inline">
           {now.toLocaleTimeString(locale === 'th' ? 'th-TH' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
         </span>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={toggleSound}
+          title={soundOn ? t('ปิดเสียง', 'Mute') : t('เปิดเสียง', 'Enable sound')}
+          aria-label={soundOn ? t('ปิดเสียง', 'Mute') : t('เปิดเสียง', 'Enable sound')}
+          className="hidden md:inline-flex"
+        >
+          {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+        </Button>
         <Button
           size="icon-sm"
           variant="ghost"
@@ -1416,6 +1563,49 @@ export function PosPage() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+            {quickProducts.length > 0 ? (
+              <div className="mb-3 rounded-xl border border-line bg-surface p-2.5">
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <p className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-faint">
+                    {favorites.length > 0 ? t('รายการโปรด', 'Favorites') : t('ขายล่าสุด', 'Recent')}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (favorites.length > 0) setFavorites([]);
+                      else setRecentProducts([]);
+                    }}
+                    className="text-[9.5px] text-faint hover:text-text"
+                  >
+                    {t('ล้าง', 'Clear')}
+                  </button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-0.5 no-scrollbar">
+                  {quickProducts.map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => addProduct(product)}
+                      className="flex w-[142px] shrink-0 items-center gap-2 rounded-lg border border-line bg-surface-2 p-1.5 text-left transition-colors hover:border-jade-border"
+                    >
+                      <span className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-line bg-surface">
+                        {product.imageUrl ? (
+                          <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="flex h-full items-center justify-center text-[10px] text-faint">N</span>
+                        )}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[10.5px] font-medium text-text">{product.name}</span>
+                        <span className="num block text-[10px] text-muted">
+                          {money(Math.min(...product.variants.map((v) => v.priceSatang)))}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             {filteredProducts.length === 0 ? (
               <EmptyState
                 icon={<Search className="h-5 w-5" />}
@@ -1430,61 +1620,85 @@ export function PosPage() {
                   const price = Math.min(...product.variants.map((v) => v.priceSatang));
                   const hasRange = new Set(product.variants.map((v) => v.priceSatang)).size > 1;
                   return (
-                    <button
-                      key={product.id}
-                      type="button"
-                      disabled={out}
-                      onClick={() => addProduct(product)}
-                      className={cn(
-                        'group relative flex flex-col overflow-hidden rounded-xl border border-line bg-surface text-left transition-all',
-                        out
-                          ? 'cursor-not-allowed opacity-55'
-                          : 'hover:-translate-y-0.5 hover:border-jade-border hover:shadow-md',
-                      )}
-                    >
-                      <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-surface-2">
-                        {product.imageUrl ? (
-                          <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
-                        ) : (
-                          <span className="text-[28px] font-semibold tracking-tight text-muted/35">
-                            {product.name.slice(0, 2)}
-                          </span>
+                    <div key={product.id} className="relative">
+                      <button
+                        type="button"
+                        disabled={out}
+                        onClick={() => addProduct(product)}
+                        className={cn(
+                          'group relative flex h-full w-full flex-col overflow-hidden rounded-xl border border-line bg-surface text-left transition-all',
+                          out
+                            ? 'cursor-not-allowed opacity-55'
+                            : 'hover:-translate-y-0.5 hover:border-jade-border hover:shadow-md',
                         )}
-                        <span
-                          className={cn(
-                            'absolute left-2 top-2 rounded px-1.5 py-0.5 text-[9px] font-medium',
-                            out
-                              ? 'bg-danger text-white'
-                              : product.trackInventory && available <= product.reorderPoint
-                                ? 'bg-amber text-white'
-                                : 'bg-surface/90 text-muted',
+                      >
+                        <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden bg-surface-2">
+                          {product.imageUrl ? (
+                            <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-[28px] font-semibold tracking-tight text-muted/35">
+                              {product.name.slice(0, 2)}
+                            </span>
                           )}
-                        >
-                          {out
-                            ? t('หมด', 'Out')
-                            : product.trackInventory
-                              ? `${number(available)} ${t('เหลือ', 'left')}`
-                              : t('ไม่ติดสต๊อก', 'No stock')}
-                        </span>
-                        {product.variants.length > 1 ? (
-                          <span className="absolute right-2 top-2 rounded bg-surface/90 px-1.5 py-0.5 text-[9px] text-muted">
-                            {product.variants.length} {t('แบบ', 'opts')}
-                          </span>
-                        ) : null}
-                      </div>
-                      <div className="flex flex-1 flex-col p-2.5">
-                        <p className="line-clamp-2 text-[12px] font-medium leading-snug text-text">{product.name}</p>
-                        <div className="mt-auto flex items-end justify-between pt-2">
-                          <span className="num text-[13.5px] font-semibold">
-                            {hasRange ? `${t('เริ่ม', 'from')} ` : ''}
-                            {money(price)}
-                          </span>
-                          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-jade-soft text-jade opacity-0 transition-opacity group-hover:opacity-100">
-                            <Plus className="h-3.5 w-3.5" />
+                          <span
+                            className={cn(
+                              'absolute left-2 top-2 rounded px-1.5 py-0.5 text-[9px] font-medium',
+                              out
+                                ? 'bg-danger text-white'
+                                : product.trackInventory && available <= product.reorderPoint
+                                  ? 'bg-amber text-white'
+                                  : 'bg-surface/90 text-muted',
+                            )}
+                          >
+                            {out
+                              ? t('หมด', 'Out')
+                              : product.trackInventory
+                                ? `${number(available)} ${t('เหลือ', 'left')}`
+                                : t('ไม่ติดสต๊อก', 'No stock')}
                           </span>
                         </div>
-                      </div>
-                    </button>
+                        <div className="flex flex-1 flex-col p-2.5">
+                          <p className="line-clamp-2 text-[12px] font-medium leading-snug text-text">{product.name}</p>
+                          <div className="mt-auto flex items-end justify-between pt-2">
+                            <span className="num text-[13.5px] font-semibold">
+                              {hasRange ? `${t('เริ่ม', 'from')} ` : ''}
+                              {money(price)}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              {product.variants.length > 1 ? (
+                                <span className="text-[9px] text-faint">
+                                  {product.variants.length} {t('แบบ', 'opts')}
+                                </span>
+                              ) : null}
+                              <span className="flex h-6 w-6 items-center justify-center rounded-md bg-jade-soft text-jade opacity-0 transition-opacity group-hover:opacity-100">
+                                <Plus className="h-3.5 w-3.5" />
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(product.id)}
+                        aria-label={
+                          favorites.includes(product.id)
+                            ? t('นำออกจากรายการโปรด', 'Remove from favorites')
+                            : t('เพิ่มในรายการโปรด', 'Add to favorites')
+                        }
+                        aria-pressed={favorites.includes(product.id)}
+                        className={cn(
+                          'absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border backdrop-blur-sm transition-colors',
+                          favorites.includes(product.id)
+                            ? 'border-amber/40 bg-amber-soft text-amber'
+                            : 'border-line bg-surface/90 text-faint hover:text-amber',
+                        )}
+                      >
+                        <Star
+                          className={cn('h-4 w-4', favorites.includes(product.id) && 'fill-current')}
+                          strokeWidth={1.8}
+                        />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -1497,7 +1711,7 @@ export function PosPage() {
         </aside>
       </div>
 
-      <div className="flex shrink-0 items-center gap-2 border-t border-line bg-surface p-2 lg:hidden">
+      <div className="flex shrink-0 items-center gap-2 border-t border-line bg-surface p-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] lg:hidden">
         <button
           type="button"
           onClick={() => setMobileCart(true)}
@@ -1548,6 +1762,80 @@ export function PosPage() {
             );
           })}
         </div>
+      </Modal>
+
+      {/* Quantity keypad for touch terminals */}
+      <Modal
+        open={Boolean(qtyTarget)}
+        onClose={() => setQtyTarget(null)}
+        title={qtyTarget?.name ?? t('จำนวน', 'Quantity')}
+        description={t('ใส่จำนวนด้วยแป้นตัวเลข', 'Enter quantity with the keypad')}
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setQtyTarget(null)}>
+              {t('ยกเลิก', 'Cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (!qtyTarget) return;
+                setLineQty(qtyTarget.variantId, Number(qtyBuffer) || 1);
+                setQtyTarget(null);
+              }}
+            >
+              {t('ยืนยันจำนวน', 'Set quantity')}
+            </Button>
+          </>
+        }
+      >
+        {(() => {
+          const current = qtyTarget ? cart.find((line) => line.variantId === qtyTarget.variantId) : null;
+          return (
+            <div>
+              <div className="flex items-baseline justify-between rounded-lg border border-line bg-surface-2 px-4 py-3">
+                <span className="text-[11px] text-muted">{t('จำนวน', 'Quantity')}</span>
+                <span className="num text-[34px] font-semibold leading-none">{qtyBuffer || '0'}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-[10.5px] text-faint">
+                <span>
+                  {t('คงเหลือ', 'Available')} {current?.onHand ?? 0}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQtyBuffer(String(current?.onHand ?? 1))}
+                  className="font-medium text-jade hover:underline"
+                >
+                  {t('ใช้จำนวนสูงสุด', 'Use max')}
+                </button>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'back'].map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      if (key === 'C') {
+                        setQtyBuffer('');
+                      } else if (key === 'back') {
+                        setQtyBuffer((prev) => prev.slice(0, -1));
+                      } else {
+                        setQtyBuffer((prev) => {
+                          const next = `${prev}${key}`.replace(/^0+(?=\d)/, '').slice(0, 4);
+                          return next;
+                        });
+                      }
+                    }}
+                    className="flex h-14 items-center justify-center rounded-lg border border-line bg-surface text-[18px] font-medium text-text transition-colors hover:border-jade-border hover:bg-jade-soft active:translate-y-px"
+                    aria-label={key === 'back' ? t('ลบหลัก', 'Backspace') : key}
+                  >
+                    {key === 'back' ? <Delete className="h-5 w-5" /> : key}
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </Modal>
 
       {/* Customer */}
@@ -1654,6 +1942,9 @@ export function PosPage() {
         open={shiftPanelOpen}
         onClose={() => setShiftPanelOpen(false)}
         shift={shift}
+        businessName={data.business.name}
+        storeName={data.store.name}
+        cashier={data.employee.displayName}
         onOpenShift={() => {
           setShiftPanelOpen(false);
           setShiftOpen(true);
@@ -2396,6 +2687,9 @@ function ShiftPanel({
   open,
   onClose,
   shift,
+  businessName,
+  storeName,
+  cashier,
   onOpenShift,
   onCash,
   onClosed,
@@ -2403,6 +2697,9 @@ function ShiftPanel({
   open: boolean;
   onClose: () => void;
   shift: ShiftSummary | null;
+  businessName: string;
+  storeName: string;
+  cashier: string;
   onOpenShift: () => void;
   onCash: (type: 'cash_in' | 'cash_out') => void;
   onClosed: () => Promise<void>;
@@ -2456,6 +2753,36 @@ function ShiftPanel({
       size="md"
       footer={
         <>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              printShiftReport({
+                businessName,
+                storeName,
+                cashier,
+                mode: 'X',
+                openedAt: shift.shift.opened_at,
+                closedAt: shift.shift.closed_at,
+                businessDate: shift.shift.business_date,
+                salesCount: shift.salesCount,
+                salesTotalSatang: shift.salesTotalSatang,
+                discountSatang: shift.discountSatang ?? 0,
+                taxSatang: shift.taxSatang ?? 0,
+                refundTotalSatang: shift.refundTotalSatang ?? 0,
+                openingCashSatang: shift.openingCashSatang,
+                cashSalesSatang: shift.cashSalesSatang ?? 0,
+                cashInSatang: shift.cashInSatang ?? 0,
+                cashOutSatang: shift.cashOutSatang ?? 0,
+                expectedCashSatang: shift.expectedCashSatang,
+                countedCashSatang: counted,
+                varianceSatang: counted - shift.expectedCashSatang,
+                payments: shift.payments ?? [],
+                topItems: shift.topItems ?? [],
+              })
+            }
+          >
+            {t('พิมพ์ X', 'Print X')}
+          </Button>
           <Button variant="ghost" onClick={onClose}>
             {t('ปิด', 'Close')}
           </Button>
@@ -2490,6 +2817,7 @@ function ShiftPanel({
         >
           <MoneyInput value={counted} onChange={setCounted} />
         </Field>
+        <CashCountHelper expectedSatang={shift.expectedCashSatang} onChange={setCounted} />
         <Field label={t('หมายเหตุ', 'Note')}>
           <Textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} placeholder={t('ถ้ามีส่วนต่าง อธิบายสั้น ๆ', 'Explain any variance')} />
         </Field>

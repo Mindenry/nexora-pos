@@ -54,6 +54,25 @@ The platform admin has no tenant and lands on `/platform`.
 10. **Platform** — suspend a tenant (revokes sessions), change plan, edit plan
     definitions, inspect money integrity.
 
+## iPad Pro / touch counter
+
+1. Open the web app in Safari on the iPad, sign in, then **Share → Add to Home
+   Screen**; the installed app launches at `/pos` in standalone mode.
+2. Landscape (1194×834) shows three product columns plus the cart; portrait
+   (1024×1366) keeps the cart beside the grid. Controls are 36–56 px, and touch
+   inputs use 16 px text so Safari does not zoom on focus.
+3. Tap a product, tap the quantity number in the cart, then use the large keypad
+   to enter a quantity (capped by available stock).
+4. Star a product to pin it to **รายการโปรด**. The strip survives reloads and is
+   the fastest way to ring repeat items; with no favourites it shows recent
+   sales instead.
+5. Use the speaker icon to mute scan/sale beeps; touch devices also vibrate when
+   supported.
+6. A USB/Bluetooth scanner in HID mode with an Enter suffix works without
+   focusing the search box: scan anywhere on the terminal.
+7. Open the shift chip, count the drawer by denomination, and press **พิมพ์ X**
+   for an 80 mm shift summary. Closing the shift prints the Z version.
+
 ## Offline rehearsal
 
 1. Log in as cashier and open a shift online.
@@ -66,5 +85,11 @@ The platform admin has no tenant and lands on `/platform`.
 ## Useful manual checks
 
 - Barcode `8850000000001` is the first seeded variant.
+- Inventory → **ตรวจนับสต๊อก** → scan `8850000000013`; the first scan starts the
+  counted quantity at 1 and later scans increment it.
+- Purchasing → open `PO-DEMO-002` → approve → scan `8850000000006`; one unit is
+  added to the receive quantity and the footer total updates to ฿9.00.
+- Shift panel → count 2×฿1,000 and 3×฿100; the helper totals ฿2,300.00 and copies
+  it into counted cash. **พิมพ์ X** opens the 80 mm report.
 - Coupon `WELCOME50` (min ฿500) cannot stack on the 10%-over-฿1,000 promotion.
 - Seeded shifts are closed so the POS prompts you to open one.

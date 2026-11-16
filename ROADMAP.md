@@ -91,11 +91,22 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 - [x] IndexedDB catalog cache + outbox, replay, failure display, manual retry
 - [ ] Billing/invoicing integration for subscriptions (deferred)
 
+## MILESTONE 10A — Counter usability & tablet deployment ✅
+- [x] Keyboard-wedge barcode capture at POS without stealing focus
+- [x] Favourite/recent quick strip and per-product star
+- [x] Touch quantity keypad capped by available stock
+- [x] Audible/haptic feedback for scans, sales and errors, with mute
+- [x] Denomination cash counter for shift close and X/Z reports
+- [x] Printable 80mm X/Z shift summaries
+- [x] Scan-to-count stock takes and scan-to-receive purchase orders
+- [x] PWA manifest/icons, iPad safe areas and 16px touch inputs
+- [x] iPad Pro 11" touch E2E (1194×834) and 1024×1366 portrait check
+
 ## MILESTONE 10 — Hardening & release 🟡
 - [x] Threat model and security controls (`docs/SECURITY.md`)
 - [x] Unit/property/integration tests: 30 passing
-- [x] E2E: 10 journeys passing on real Chrome (incl. offline, customer display,
-      keyboard, loyalty redemption, 1024×768 cashier layout)
+- [x] E2E: 17 journeys passing on real Chrome (incl. offline, customer display,
+      keyboard, loyalty, iPad touch, scanner, cash count, 1024×768 layout)
 - [x] Typecheck, lint and production build clean
 - [x] Browser visual review light/dark, desktop/mobile
 - [x] Backup + restore drill with money reconciliation

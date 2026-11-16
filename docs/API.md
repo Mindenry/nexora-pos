@@ -126,6 +126,9 @@ recorded as a negative `loyalty_ledger` entry (`redeem`). The sale stores
 | POST | `/purchase-orders/:id/close` | purchasing.approve |
 | POST | `/purchase-orders/:id/payments` | purchasing.manage |
 
+`GET /purchase-orders/:id` returns each line with `barcode` (joined from the
+variant) so the receiving screen can match scanned codes without extra lookups.
+
 ## Customers, loyalty, promotions
 
 | Method | Path | Permission |

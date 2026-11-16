@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Truck } from 'lucide-react';
+import { Plus, ScanBarcode, Truck } from 'lucide-react';
 import { uuidv7 } from '@nexora/shared';
 import { api, errorMessage, qs } from '../lib/api';
+import { feedback } from '../lib/feedback';
 import { useAuth } from '../lib/auth';
 import { useLang } from '../lib/i18n';
 import { useFormat } from '../lib/format';
@@ -60,6 +61,7 @@ interface PurchaseDetail extends PurchaseOrder {
     variantId: string;
     name: string;
     sku: string;
+    barcode?: string | null;
     qtyOrdered: number;
     qtyReceived: number;
     unitCostSatang: number;
@@ -89,6 +91,8 @@ export function PurchasingPage() {
   const [page, setPage] = useState(1);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [receiveQty, setReceiveQty] = useState<Record<string, number>>({});
+  const [receiveScan, setReceiveScan] = useState('');
+  const receiveScanRef = useRef<HTMLInputElement>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [supplierId, setSupplierId] = useState('');
   const [expectedDate, setExpectedDate] = useState('');
@@ -127,8 +131,9 @@ export function PurchasingPage() {
   useEffect(() => {
     if (!detail.data) return;
     const initial: Record<string, number> = {};
-    for (const item of detail.data.data.items) initial[item.id] = item.qtyOrdered - item.qtyReceived;
+    for (const item of detail.data.data.items) initial[item.id] = 0;
     setReceiveQty(initial);
+    setReceiveScan('');
   }, [detail.data]);
 
   const refresh = async () => {
@@ -211,6 +216,28 @@ export function PurchasingPage() {
   const receiveTotal = order
     ? order.items.reduce((sum, item) => sum + (receiveQty[item.id] ?? 0) * item.unitCostSatang, 0)
     : 0;
+
+  const handleReceiveScan = (value?: string) => {
+    // Prefer the live DOM value so fast scanner keystrokes are never dropped.
+    const code = (value ?? receiveScan).trim();
+    if (!code || !order) return;
+    const item = order.items.find((line) => line.barcode === code || line.sku === code);
+    if (!item) {
+      feedback('error');
+      toast.error(t('ไม่พบสินค้าในใบสั่งซื้อ', 'Item not on this purchase order'), code);
+      setReceiveScan('');
+      receiveScanRef.current?.focus();
+      return;
+    }
+    const remaining = item.qtyOrdered - item.qtyReceived;
+    setReceiveQty((prev) => ({
+      ...prev,
+      [item.id]: Math.min(remaining, (prev[item.id] ?? 0) + 1),
+    }));
+    setReceiveScan('');
+    feedback('scan');
+    receiveScanRef.current?.focus();
+  };
 
   return (
     <PageBody>
@@ -365,6 +392,43 @@ export function PurchasingPage() {
               <span className="num text-[15px] font-semibold">{money(order.totalSatang)}</span>
             </div>
             {order.notes ? <p className="text-[11.5px] text-muted">{order.notes}</p> : null}
+            {['approved', 'partially_received'].includes(order.status) ? (
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="min-w-[220px] flex-1">
+                  <Field
+                    label={t('สแกนรับสินค้า', 'Scan to receive')}
+                    hint={t('สแกนบาร์โค้ด/SKU แล้ว Enter เพื่อนับทีละชิ้น', 'Scan barcode/SKU and press Enter to add one.')}
+                  >
+                    <Input
+                      ref={receiveScanRef}
+                      value={receiveScan}
+                      onChange={(event) => setReceiveScan(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          handleReceiveScan(event.currentTarget.value);
+                        }
+                      }}
+                      placeholder={t('ยิงบาร์โค้ด…', 'Scan barcode…')}
+                      leadingIcon={<ScanBarcode className="h-4 w-4" />}
+                    />
+                  </Field>
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    setReceiveQty(
+                      Object.fromEntries(
+                        order.items.map((item) => [item.id, item.qtyOrdered - item.qtyReceived]),
+                      ),
+                    )
+                  }
+                >
+                  {t('รับทั้งหมด', 'Receive all')}
+                </Button>
+              </div>
+            ) : null}
             {['approved', 'partially_received'].includes(order.status) ? (
               <InlineAlert tone="info">
                 {t('ระบุจำนวนที่รับจริง ระบบจะสร้าง movement และอัปเดตต้นทุนสินค้า', 'Enter received quantities; stock and cost are updated.')}

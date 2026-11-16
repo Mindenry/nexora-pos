@@ -199,8 +199,11 @@ export function purchasingRoutes(): Router {
       const row = po.rows[0];
       if (!row) throw new NexoraError('NOT_FOUND');
       const items = await client.query(
-        `SELECT id, variant_id, name_snapshot, sku_snapshot, qty_ordered, qty_received, unit_cost_satang, line_total_satang
-         FROM purchase_order_items WHERE tenant_id=$1 AND purchase_order_id=$2`,
+        `SELECT i.id, i.variant_id, i.name_snapshot, i.sku_snapshot, i.qty_ordered, i.qty_received,
+                i.unit_cost_satang, i.line_total_satang, v.barcode
+         FROM purchase_order_items i
+         JOIN product_variants v ON v.id = i.variant_id
+         WHERE i.tenant_id=$1 AND i.purchase_order_id=$2`,
         [ctx.tenant!.id, id],
       );
       const receipts = await client.query(
@@ -231,6 +234,7 @@ export function purchasingRoutes(): Router {
         variantId: i.variant_id,
         name: i.name_snapshot,
         sku: i.sku_snapshot,
+        barcode: i.barcode,
         qtyOrdered: i.qty_ordered,
         qtyReceived: i.qty_received,
         unitCostSatang: Number(i.unit_cost_satang),

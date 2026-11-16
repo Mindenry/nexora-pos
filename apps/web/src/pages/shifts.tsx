@@ -9,6 +9,8 @@ import { useFormat } from '../lib/format';
 import { PageBody, PageHeader } from '../components/shell';
 import { ShiftStatusBadge } from '../components/status';
 import { MoneyInput } from '../components/money-input';
+import { CashCountHelper } from '../components/cash-count';
+import { printShiftReport } from '../lib/shift-print';
 import {
   Badge,
   Button,
@@ -45,6 +47,8 @@ interface ShiftSummary {
   };
   salesCount: number;
   salesTotalSatang: number;
+  discountSatang?: number;
+  taxSatang?: number;
   refundTotalSatang: number;
   cashSalesSatang: number;
   cashInSatang: number;
@@ -75,7 +79,7 @@ interface ShiftRow {
 export function ShiftsPage() {
   const { t, locale } = useLang();
   const { money, number, dateTime } = useFormat();
-  const { can, storeId } = useAuth();
+  const { can, storeId, me } = useAuth();
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -424,6 +428,7 @@ export function ShiftsPage() {
           <Field label={t('เงินสดนับได้', 'Counted cash')}>
             <MoneyInput value={counted} onChange={setCounted} />
           </Field>
+          <CashCountHelper expectedSatang={summary?.expectedCashSatang ?? 0} onChange={setCounted} />
           <Field label={t('หมายเหตุ', 'Note')}>
             <Textarea value={note} onChange={(event) => setNote(event.target.value)} rows={2} />
           </Field>
@@ -466,6 +471,47 @@ export function ShiftsPage() {
         onClose={() => setDetailShift(null)}
         title={t('สรุปกะ', 'Shift summary')}
         size="md"
+        footer={
+          detail.data ? (
+            <>
+              <Button variant="ghost" onClick={() => setDetailShift(null)}>
+                {t('ปิด', 'Close')}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const s = detail.data.data;
+                  const row = rows.find((shift) => shift.id === detailShift);
+                  printShiftReport({
+                    businessName: me?.business?.name ?? 'NEXORA',
+                    storeName: s.shift ? (row?.storeName ?? me?.store?.name ?? '') : '',
+                    cashier: row?.employeeName ?? me?.employee?.displayName ?? '',
+                    mode: s.shift.status === 'closed' ? 'Z' : 'X',
+                    openedAt: s.shift.opened_at,
+                    closedAt: s.shift.closed_at,
+                    businessDate: s.shift.business_date,
+                    salesCount: s.salesCount,
+                    salesTotalSatang: s.salesTotalSatang,
+                    discountSatang: s.discountSatang ?? 0,
+                    taxSatang: s.taxSatang ?? 0,
+                    refundTotalSatang: s.refundTotalSatang,
+                    openingCashSatang: s.shift.opening_cash_satang,
+                    cashSalesSatang: s.cashSalesSatang,
+                    cashInSatang: s.cashInSatang,
+                    cashOutSatang: s.cashOutSatang,
+                    expectedCashSatang: s.expectedCashSatang,
+                    countedCashSatang: s.shift.counted_cash_satang,
+                    varianceSatang: s.shift.variance_satang,
+                    payments: s.payments,
+                    topItems: s.topItems,
+                  });
+                }}
+              >
+                {t('พิมพ์สรุปกะ', 'Print report')}
+              </Button>
+            </>
+          ) : null
+        }
       >
         {detail.isLoading ? (
           <div className="flex justify-center py-8">

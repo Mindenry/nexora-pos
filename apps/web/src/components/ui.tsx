@@ -1,5 +1,6 @@
 import {
   createContext,
+  forwardRef,
   useCallback,
   useContext,
   useEffect,
@@ -145,7 +146,10 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean;
 }
 
-export function Input({ className, leadingIcon, invalid, ...props }: InputProps) {
+export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
+  { className, leadingIcon, invalid, ...props },
+  ref,
+) {
   return (
     <div className="relative">
       {leadingIcon ? (
@@ -154,6 +158,7 @@ export function Input({ className, leadingIcon, invalid, ...props }: InputProps)
         </span>
       ) : null}
       <input
+        ref={ref}
         className={cn(
           controlBase,
           'h-10',
@@ -166,7 +171,7 @@ export function Input({ className, leadingIcon, invalid, ...props }: InputProps)
       />
     </div>
   );
-}
+});
 
 export function Select({
   className,
