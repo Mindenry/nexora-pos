@@ -341,6 +341,8 @@ export function Badge({
 // ── Modal / Drawer ──────────────────────────────────────────────────────────
 function useDialogBehavior(open: boolean, onClose: () => void) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
     if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
@@ -357,7 +359,7 @@ function useDialogBehavior(open: boolean, onClose: () => void) {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== 'Tab' || !panelRef.current) return;
@@ -384,7 +386,10 @@ function useDialogBehavior(open: boolean, onClose: () => void) {
       window.clearTimeout(timer);
       previouslyFocused?.focus?.();
     };
-  }, [open, onClose]);
+    // Deliberately only re-run when the dialog opens/closes. Depending on
+    // onClose (usually an inline function) restarted the focus trap on every
+    // keystroke and stole focus from the field being typed into.
+  }, [open]);
   return panelRef;
 }
 

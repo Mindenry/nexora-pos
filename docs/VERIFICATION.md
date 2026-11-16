@@ -158,6 +158,11 @@ against `max(number)` before accepting traffic post-restore (documented).
   `/api/health`, SPA fallback and a login POST with the LAN Origin.
 - PromptPay provider tab shows a one-click **เปิดยืนยันอัตโนมัติ** action when a
   provider exists but is inactive; activated state and event log verified.
+- Input focus regression fixed: the dialog focus trap re-ran on every parent
+  render because it depended on an inline `onClose`, stealing focus after the
+  first character. It now depends only on `open`. Verified by typing a 10-digit
+  identifier, a Thai account name, the login email/password and a POS barcode
+  one character at a time; the full values and focus were retained.
 - 1920×1080: dashboard content stays capped and readable.
 - Customer display checked at 1280×800 and 1024×768 (idle + cart).
 - Dark mode checked on dashboard.
