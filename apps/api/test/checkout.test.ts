@@ -106,6 +106,15 @@ beforeAll(async () => {
     .post('/api/shifts/open')
     .send({ openingCashSatang: 200_000, terminalName: 'Test counter' });
   expect(shift.status).toBe(201);
+
+  const branding = await withStore(owner, storeId).put('/api/settings/business').send({
+    receiptAccent: '#123456',
+    receiptHeaderNote: 'Brand snapshot',
+    receiptShowCashier: false,
+    receiptShowTaxId: false,
+    receiptPaperWidth: '80mm',
+  });
+  expect(branding.status, JSON.stringify(branding.body)).toBe(200);
 });
 
 afterAll(async () => {
@@ -138,6 +147,11 @@ describe('POS checkout', () => {
     saleNumber = first.body.data.number;
     saleItemId = first.body.data.receipt.items[0].saleItemId;
     lineTotal = first.body.data.receipt.items[0].totalSatang;
+    expect(first.body.data.receipt.business.receiptAccent).toBe('#123456');
+    expect(first.body.data.receipt.business.receiptHeaderNote).toBe('Brand snapshot');
+    expect(first.body.data.receipt.business.receiptShowCashier).toBe(false);
+    expect(first.body.data.receipt.business.receiptShowTaxId).toBe(false);
+    expect(first.body.data.receipt.business.receiptPaperWidth).toBe('80mm');
 
     // Replaying the same operation id returns the same sale and changes nothing.
     const replay = await withStore(owner, storeId).post('/api/pos/checkout').send(payload);

@@ -9,12 +9,12 @@ runs were fixed before the final pass; this file records the final evidence.
 | --- | --- | --- |
 | TypeScript | `npm run typecheck` | ✅ all four workspaces, 0 errors |
 | ESLint | `npm run lint` | ✅ 0 errors, 0 warnings |
-| Production build | `npm run build` | ✅ API bundle + code-split SPA; main JS 375 kB (109 kB gzip), POS 96 kB, PromptPay page 43 kB |
-| Migration | `npm run db:migrate` | ✅ 12 migrations applied (through `0012_payment_webhooks.sql`), checksums verified |
+| Production build | `npm run build` | ✅ standalone API bundle + code-split SPA; main JS 376 kB (109 kB gzip), POS 97 kB, PromptPay page 46 kB |
+| Migration | `npm run db:migrate` | ✅ 13 migrations applied (through `0013_receipt_branding.sql`), checksums verified |
 
 ## Unit & integration
 
-`npm test` → **6 files, 86 tests passed**:
+`npm test` → **6 files, 89 tests passed**:
 
 - Integer money half-up, basis points, VAT from gross/net, largest-remainder
   allocation (including zero-weight totals).
@@ -69,7 +69,13 @@ runs were fixed before the final pass; this file records the final evidence.
   - POS tender availability and paid history summary;
   - signed provider webhook: secret shown once, HMAC verification, stale
     timestamp rejection, amount mismatch ignored, duplicate event idempotent,
-    auto-confirm with no staff actor, auto-confirm disabled respected.
+    auto-confirm with no staff actor, auto-confirm disabled respected;
+  - provider self-test records a signed `session_not_found` event without money
+    movement; `review=1` lists only paid sessions without a sale;
+  - receipt branding persists (accent, logo, header note, cashier/tax visibility,
+    paper width) and is copied into the checkout receipt snapshot;
+  - brand-logo upload is signature-checked; tenant system health returns checks,
+    DB latency/size, counts and PromptPay integration state.
 
 ## End-to-end (real Chrome via Playwright)
 
@@ -163,6 +169,14 @@ against `max(number)` before accepting traffic post-restore (documented).
   first character. It now depends only on `open`. Verified by typing a 10-digit
   identifier, a Thai account name, the login email/password and a POS barcode
   one character at a time; the full values and focus were retained.
+- LAN agent installed as Scheduled Task **NEXORA POS Agent**; killing the API
+  and the LAN server separately caused both to restart within ~10 seconds.
+- System Health page verified at 1440×1000 with checks, DB metrics, PromptPay
+  state and reconciliation warnings.
+- Receipt branding settings verified with live preview, logo upload, accent and
+  paper controls.
+- PWA service worker verified: after one online visit the app registered,
+  controlled the page, and loaded the shell after switching Chrome offline.
 - Receipt printing fixed: print now opens a visible receipt window
   synchronously from the click (avoiding Safari/popup blockers after `await`),
   with an in-page “พิมพ์ / Print” button. Sale detail prints the loaded snapshot

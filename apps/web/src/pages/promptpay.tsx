@@ -8,6 +8,7 @@ import {
   CircleX,
   Clock,
   Copy,
+  TriangleAlert,
   Download,
   ExternalLink,
   KeyRound,
@@ -101,6 +102,7 @@ export function PromptPayPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<PromptPayStatus | ''>('');
+  const [reviewOnly, setReviewOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [includeInactive, setIncludeInactive] = useState(false);
 
@@ -131,13 +133,14 @@ export function PromptPayPage() {
   });
 
   const sessions = useQuery({
-    queryKey: ['promptpay-sessions', page, search, status],
+    queryKey: ['promptpay-sessions', page, search, status, reviewOnly],
     queryFn: () =>
       promptPayApi.listSessions({
         page,
         pageSize: 20,
         status,
         search,
+        review: reviewOnly,
       }),
     enabled: can('payments.read') && tab === 'history',
   });
@@ -340,7 +343,7 @@ export function PromptPayPage() {
         }
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {
             label: t('รับเงินสำเร็จ', 'Confirmed'),
@@ -361,6 +364,12 @@ export function PromptPayPage() {
             hint: defaultAccount
               ? `${identifierTypeLabel(defaultAccount.identifierType, locale)} · ${defaultAccount.maskedIdentifier}`
               : t('เพิ่มบัญชีเพื่อเริ่มรับเงิน', 'Add an account to receive money'),
+          },
+          {
+            label: t('รอตรวจกระทบยอด', 'Needs review'),
+            value: `${meta?.summary.reviewCount ?? 0}`,
+            icon: TriangleAlert,
+            hint: t('รับเงินแล้วแต่ยังไม่ผูกบิล', 'Paid but not linked to a sale'),
           },
         ].map((item) => (
           <Card key={item.label} className="flex items-center gap-3 p-4">
@@ -414,6 +423,18 @@ export function PromptPayPage() {
               <option value="cancelled">{t('ยกเลิก', 'Cancelled')}</option>
               <option value="refunded">{t('คืนเงินแล้ว', 'Refunded')}</option>
             </Select>
+            <label className="flex cursor-pointer items-center gap-2 text-[11.5px] text-muted">
+              <input
+                type="checkbox"
+                checked={reviewOnly}
+                onChange={(event) => {
+                  setReviewOnly(event.target.checked);
+                  setPage(1);
+                }}
+                className="h-3.5 w-3.5 accent-[var(--jade)]"
+              />
+              {t('เฉพาะที่ต้องกระทบยอด', 'Needs review only')}
+            </label>
             <span className="ml-auto text-[11px] text-faint">
               {meta?.total ?? 0} {t('รายการ', 'records')}
             </span>
@@ -938,6 +959,8 @@ function VerificationSettings() {
   const [activating, setActivating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [rotating, setRotating] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
   const [rotateConfirm, setRotateConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1027,6 +1050,28 @@ function VerificationSettings() {
       toast.error(t('เปิดใช้งานไม่สำเร็จ', 'Could not activate'), errorMessage(error, locale));
     } finally {
       setActivating(false);
+    }
+  };
+
+  const testConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const result = await promptPayApi.testProvider();
+      const detail = `${result.data.eventStatus ?? result.data.status}${result.data.reason ? ` · ${result.data.reason}` : ''}`;
+      setTestResult(detail);
+      await queryClient.invalidateQueries({ queryKey: ['promptpay-provider-events'] });
+      toast.success(
+        t('เชื่อมต่อ Webhook สำเร็จ', 'Webhook connection works'),
+        t(
+          `ทดสอบถูกบันทึกเป็น ${detail} (ไม่มีการตัดเงิน)`,
+          `Test recorded as ${detail} (no money movement)`,
+        ),
+      );
+    } catch (error) {
+      toast.error(t('ทดสอบไม่สำเร็จ', 'Test failed'), errorMessage(error, locale));
+    } finally {
+      setTesting(false);
     }
   };
 
@@ -1245,24 +1290,39 @@ function VerificationSettings() {
             {config.lastEventAt
               ? `${t('เหตุการณ์ล่าสุด', 'Last event')}: ${dateTime(config.lastEventAt)}`
               : t('ยังไม่ได้รับเหตุการณ์', 'No events received yet')}
-          </p>
-          {rotateConfirm ? (
-            <div className="flex items-center gap-2">
-              <span className="text-[10.5px] text-danger">
-                {t('secret เก่าจะใช้ไม่ได้ทันที', 'The old secret stops working immediately.')}
+            {testResult ? (
+              <span className="ml-2 text-[10px] text-jade">
+                {t('ผลทดสอบ', 'Test')}: {testResult}
               </span>
-              <Button size="sm" variant="ghost" onClick={() => setRotateConfirm(false)}>
-                {t('ยกเลิก', 'Cancel')}
-              </Button>
-              <Button size="sm" variant="danger" loading={rotating} onClick={() => void rotate()}>
-                {t('ยืนยันเปลี่ยน', 'Rotate')}
-              </Button>
-            </div>
-          ) : (
-            <Button size="sm" variant="secondary" onClick={() => setRotateConfirm(true)}>
-              {t('เปลี่ยน secret', 'Rotate secret')}
+            ) : null}
+          </p>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              loading={testing}
+              onClick={() => void testConnection()}
+            >
+              {t('ส่งทดสอบ', 'Send test')}
             </Button>
-          )}
+            {rotateConfirm ? (
+              <>
+                <span className="text-[10.5px] text-danger">
+                  {t('secret เก่าจะใช้ไม่ได้ทันที', 'The old secret stops working immediately.')}
+                </span>
+                <Button size="sm" variant="ghost" onClick={() => setRotateConfirm(false)}>
+                  {t('ยกเลิก', 'Cancel')}
+                </Button>
+                <Button size="sm" variant="danger" loading={rotating} onClick={() => void rotate()}>
+                  {t('ยืนยันเปลี่ยน', 'Rotate')}
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" variant="secondary" onClick={() => setRotateConfirm(true)}>
+                {t('เปลี่ยน secret', 'Rotate secret')}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">

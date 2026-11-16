@@ -15,6 +15,7 @@
     "dev:api": "npm run dev -w @nexora/api",
     "dev:web": "npm run dev -w @nexora/web",
     "lan": "node scripts/lan-server.mjs",
+    "agent": "node scripts/nexora-agent.mjs",
     "serve:lan": "npm run build -w @nexora/web && node scripts/lan-server.mjs",
     "build": "npm run build -w @nexora/api && npm run build -w @nexora/web",
     "typecheck": "npm run typecheck -w @nexora/shared && npm run typecheck -w @nexora/db && npm run typecheck -w @nexora/api && npm run typecheck -w @nexora/web",

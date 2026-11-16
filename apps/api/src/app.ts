@@ -22,6 +22,7 @@ import { reportRoutes } from './modules/reports';
 import { salesRoutes } from './modules/sales';
 import { notificationRoutes, settingsRoutes } from './modules/settings';
 import { shiftRoutes } from './modules/shifts';
+import { systemRoutes } from './modules/system';
 import { uploadRoutes, UPLOAD_DIR } from './modules/uploads';
 import { configurePromptPayCrypto } from './services/promptpay-crypto';
 
@@ -184,6 +185,7 @@ export function createApp({ db, config }: AppDeps): Express {
   protectedApi.use(promotionRoutes());
   protectedApi.use(peopleRoutes());
   protectedApi.use(settingsRoutes());
+  protectedApi.use(systemRoutes());
   protectedApi.use(notificationRoutes());
   protectedApi.use(reportRoutes());
   protectedApi.use(uploadRoutes());

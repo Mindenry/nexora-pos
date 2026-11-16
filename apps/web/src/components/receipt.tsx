@@ -8,7 +8,19 @@ export interface ReceiptSnapshot {
   number: string;
   businessDate?: string;
   issuedAt?: string;
-  business?: { name?: string; legalName?: string; taxId?: string; address?: string; phone?: string };
+  business?: {
+    name?: string;
+    legalName?: string;
+    taxId?: string;
+    address?: string;
+    phone?: string;
+    receiptAccent?: string;
+    receiptLogoUrl?: string;
+    receiptHeaderNote?: string;
+    receiptShowCashier?: boolean;
+    receiptShowTaxId?: boolean;
+    receiptPaperWidth?: '80mm' | 'a4';
+  };
   store?: { name?: string; address?: string; phone?: string; taxId?: string };
   cashier?: string;
   customer?: { name?: string; phone?: string } | null;
@@ -54,6 +66,10 @@ export function ReceiptView({
   const items = receipt.items ?? [];
   const payments = receipt.payments ?? [];
   const vatPercent = ((receipt.vatRateBp ?? 700) / 100).toFixed(0);
+  const accent = receipt.business?.receiptAccent ?? '#2AA78C';
+  const logoUrl = receipt.business?.receiptLogoUrl;
+  const showCashier = receipt.business?.receiptShowCashier !== false;
+  const showTaxId = receipt.business?.receiptShowTaxId !== false;
 
   return (
     <div
@@ -65,9 +81,18 @@ export function ReceiptView({
       <div className={cn('relative px-5 pb-4 pt-5 text-white', isRefund ? 'bg-[#3a1715]' : 'bg-[#0f1513]')}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-jade text-[15px] font-bold tracking-tight text-white shadow-sm">
-              N
-            </span>
+            {logoUrl ? (
+              <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white">
+                <img src={logoUrl} alt="" className="h-full w-full object-contain" />
+              </span>
+            ) : (
+              <span
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-[15px] font-bold tracking-tight text-white shadow-sm"
+                style={{ backgroundColor: accent }}
+              >
+                N
+              </span>
+            )}
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-white">NEXORA POS</p>
               <p className="text-[9.5px] uppercase tracking-[0.16em] text-white/45">
@@ -89,8 +114,9 @@ export function ReceiptView({
             <span
               className={cn(
                 'rounded-full px-2.5 py-1 text-[9.5px] font-semibold uppercase tracking-[0.14em]',
-                isRefund ? 'bg-danger/20 text-[#ffb4ad]' : 'bg-jade/20 text-jade-soft',
+                isRefund ? 'bg-danger/20 text-[#ffb4ad]' : 'bg-white/10',
               )}
+              style={isRefund ? undefined : { color: accent }}
             >
               {isRefund ? t('คืนสินค้า', 'Refund') : receipt.reprint ? t('พิมพ์ซ้ำ', 'Reprint') : t('ใบเสร็จ', 'Receipt')}
             </span>
@@ -118,20 +144,27 @@ export function ReceiptView({
           {receipt.business?.legalName ? (
             <p className="mt-0.5 text-[10px] text-muted">{receipt.business.legalName}</p>
           ) : null}
+          {receipt.business?.receiptHeaderNote ? (
+            <p className="mt-1 text-[10px] font-medium" style={{ color: accent }}>
+              {receipt.business.receiptHeaderNote}
+            </p>
+          ) : null}
           <p className="mt-1 text-[9.5px] leading-relaxed text-faint">
             {[receipt.store?.name ?? receipt.business?.address, receipt.store?.address]
               .filter(Boolean)
               .join(' · ')}
           </p>
           <p className="text-[9.5px] text-faint">
-            {[receipt.business?.phone, receipt.business?.taxId ? `${t('เลขประจำตัวผู้เสียภาษี', 'Tax ID')} ${receipt.business.taxId}` : null]
+            {[receipt.business?.phone, showTaxId && receipt.business?.taxId ? `${t('เลขประจำตัวผู้เสียภาษี', 'Tax ID')} ${receipt.business.taxId}` : null]
               .filter(Boolean)
               .join(' · ')}
           </p>
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2 rounded-xl border border-line bg-surface-2/70 px-3 py-2.5 text-[10.5px]">
-          <Meta label={t('พนักงานขาย', 'Cashier')} value={receipt.cashier ?? '—'} />
+          {showCashier ? (
+            <Meta label={t('พนักงานขาย', 'Cashier')} value={receipt.cashier ?? '—'} />
+          ) : null}
           <Meta label={t('ช่องทาง', 'Channel')} value={receipt.store?.name ?? t('หน้าร้าน', 'In-store')} align="right" />
           {receipt.customer ? (
             <Meta label={t('ลูกค้า', 'Customer')} value={receipt.customer.name ?? '—'} />
@@ -209,7 +242,9 @@ export function ReceiptView({
                 {payments.length > 1 ? t('ชำระหลายช่องทาง', 'Split payment') : t('ชำระครบถ้วน', 'Paid in full')}
               </p>
             </div>
-            <p className="num text-[24px] font-semibold leading-none text-jade">{money(receipt.totalSatang)}</p>
+            <p className="num text-[24px] font-semibold leading-none" style={{ color: accent }}>
+              {money(receipt.totalSatang)}
+            </p>
           </div>
         </div>
 
@@ -245,9 +280,11 @@ export function ReceiptView({
         ) : null}
 
         {Number(receipt.loyaltyPoints ?? 0) > 0 ? (
-          <div className="mt-3 flex items-center justify-between rounded-lg border border-amber/20 bg-amber-soft/40 px-2.5 py-1.5 text-[10px] text-amber">
+          <div className="mt-3 flex items-center justify-between rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-[10px] text-muted">
             <span>{t('คะแนนที่ได้รับ', 'Points earned')}</span>
-            <span className="num font-semibold">+{receipt.loyaltyPoints}</span>
+            <span className="num font-semibold" style={{ color: accent }}>
+              +{receipt.loyaltyPoints}
+            </span>
           </div>
         ) : null}
 

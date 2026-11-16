@@ -61,6 +61,12 @@ interface BusinessRow {
   prices_include_tax: boolean;
   receipt_prefix: string;
   receipt_footer: string;
+  receipt_accent: string;
+  receipt_logo_url: string;
+  receipt_header_note: string;
+  receipt_show_cashier: boolean;
+  receipt_show_tax_id: boolean;
+  receipt_paper_width: '80mm' | 'a4';
   loyalty_earn_per_baht: number;
   point_value_satang: number;
   loyalty_redemption_enabled: boolean;
@@ -179,6 +185,8 @@ export async function resolveUserContext(
     const business = await client.query<BusinessRow>(
       `SELECT id, name, legal_name, tax_id, address, phone, email, currency, timezone,
               vat_rate_bp, prices_include_tax, receipt_prefix, receipt_footer,
+              receipt_accent, receipt_logo_url, receipt_header_note,
+              receipt_show_cashier, receipt_show_tax_id, receipt_paper_width,
               loyalty_earn_per_baht, point_value_satang, loyalty_redemption_enabled,
               offline_cash_enabled, discount_limit_bp, allow_negative_stock
        FROM businesses WHERE tenant_id = $1`,
@@ -235,6 +243,12 @@ export async function resolveUserContext(
         pricesIncludeTax: businessRow.prices_include_tax,
         receiptPrefix: businessRow.receipt_prefix,
         receiptFooter: businessRow.receipt_footer,
+        receiptAccent: businessRow.receipt_accent,
+        receiptLogoUrl: businessRow.receipt_logo_url,
+        receiptHeaderNote: businessRow.receipt_header_note,
+        receiptShowCashier: businessRow.receipt_show_cashier,
+        receiptShowTaxId: businessRow.receipt_show_tax_id,
+        receiptPaperWidth: businessRow.receipt_paper_width,
         loyaltyEarnPerBaht: businessRow.loyalty_earn_per_baht,
         pointValueSatang: businessRow.point_value_satang,
         loyaltyRedemptionEnabled: businessRow.loyalty_redemption_enabled,

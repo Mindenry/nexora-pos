@@ -142,6 +142,50 @@ describe('product image upload', () => {
   });
 });
 
+describe('receipt branding and system health', () => {
+  it('stores branding, accepts a logo and exposes tenant health', async () => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l8X8WQAAAABJRU5ErkJggg==';
+    const logo = await withStore(agent, storeId)
+      .post('/api/uploads/brand-logo')
+      .send({ mimeType: 'image/png', dataBase64: png });
+    expect(logo.status).toBe(201);
+    expect(logo.body.data.url).toMatch(/^\/uploads\/.+\.png$/);
+
+    const saved = await withStore(agent, storeId).put('/api/settings/business').send({
+      receiptAccent: '#123456',
+      receiptLogoUrl: logo.body.data.url,
+      receiptHeaderNote: 'Welcome to Ops Store',
+      receiptFooter: 'Thanks for visiting',
+      receiptShowCashier: false,
+      receiptShowTaxId: false,
+      receiptPaperWidth: 'a4',
+    });
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200);
+    expect(saved.body.data.receipt_accent).toBe('#123456');
+    expect(saved.body.data.receipt_paper_width).toBe('a4');
+
+    const settings = await withStore(agent, storeId).get('/api/settings/business');
+    expect(settings.status).toBe(200);
+    expect(settings.body.data.business.receiptAccent).toBe('#123456');
+    expect(settings.body.data.business.receiptLogoUrl).toBe(logo.body.data.url);
+    expect(settings.body.data.business.receiptShowCashier).toBe(false);
+    expect(settings.body.data.business.receiptPaperWidth).toBe('a4');
+
+    const invalidColor = await withStore(agent, storeId)
+      .put('/api/settings/business')
+      .send({ receiptAccent: 'red' });
+    expect(invalidColor.status).toBe(422);
+
+    const health = await withStore(agent, storeId).get('/api/system/health');
+    expect(health.status, JSON.stringify(health.body)).toBe(200);
+    expect(health.body.data.status).toMatch(/ok|warning|critical/);
+    expect(health.body.data.checks.length).toBeGreaterThan(3);
+    expect(health.body.data.database.latencyMs).toBeGreaterThanOrEqual(0);
+    expect(health.body.data.counts.openShifts).toBeGreaterThanOrEqual(0);
+  });
+});
+
 describe('purchasing and receiving', () => {
   it('runs draft → submit → approve → partial receive → full receive', async () => {
     const supplier = await withStore(agent, storeId)

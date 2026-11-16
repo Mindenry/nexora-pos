@@ -72,8 +72,11 @@ export async function runMigrations(connectionString: string): Promise<Migration
   return { applied, skipped };
 }
 
-const isCli = process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href;
-if (isCli || process.argv[1]?.endsWith('migrate.ts')) {
+// Only the dedicated migrate entrypoint runs automatically. A bundled API that
+// happens to contain this module must never start a migration on boot.
+const invokedFile = process.argv[1] ?? '';
+const isCli = /(^|[\\/])migrate\.(ts|js)$/.test(invokedFile);
+if (isCli) {
   const url = process.env.DATABASE_URL;
   if (!url) {
     console.error('DATABASE_URL is required');

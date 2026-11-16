@@ -1070,6 +1070,7 @@ export async function listPromptPaySessions(
     search?: string;
     from?: string;
     to?: string;
+    review?: boolean;
   },
 ): Promise<{
   rows: PromptPaySessionListRow[];
@@ -1083,6 +1084,7 @@ export async function listPromptPaySessions(
       paidCount: number;
       paidSatang: number;
       pendingCount: number;
+      reviewCount: number;
     };
   };
 }> {
@@ -1097,6 +1099,7 @@ export async function listPromptPaySessions(
     query.from ?? null,
     query.to ?? null,
     search,
+    query.review ?? false,
     query.pageSize,
     offset,
   ];
@@ -1104,7 +1107,8 @@ export async function listPromptPaySessions(
     AND ($3::text IS NULL OR ps.status = $3)
     AND ($4::date IS NULL OR ps.created_at >= $4::date)
     AND ($5::date IS NULL OR ps.created_at < ($5::date + 1))
-    AND ($6::text IS NULL OR ps.reference ILIKE '%'||$6||'%' OR s.number ILIKE '%'||$6||'%')`;
+    AND ($6::text IS NULL OR ps.reference ILIKE '%'||$6||'%' OR s.number ILIKE '%'||$6||'%')
+    AND ($7::boolean IS NOT TRUE OR (ps.status = 'paid' AND ps.sale_id IS NULL))`;
 
   const rows = await client.query<{
     id: string;
@@ -1134,7 +1138,7 @@ export async function listPromptPaySessions(
      LEFT JOIN users u ON u.id = ps.verified_by
      WHERE ${where}
      ORDER BY ps.created_at DESC
-     LIMIT $7 OFFSET $8`,
+     LIMIT $8 OFFSET $9`,
     params,
   );
 
@@ -1143,15 +1147,17 @@ export async function listPromptPaySessions(
     paid_count: number;
     paid_satang: number;
     pending_count: number;
+    review_count: number;
   }>(
     `SELECT count(*)::int AS count,
             count(*) FILTER (WHERE ps.status = 'paid')::int AS paid_count,
             COALESCE(sum(ps.amount_satang) FILTER (WHERE ps.status = 'paid'), 0)::bigint AS paid_satang,
-            count(*) FILTER (WHERE ps.status = 'pending')::int AS pending_count
+            count(*) FILTER (WHERE ps.status = 'pending')::int AS pending_count,
+            count(*) FILTER (WHERE ps.status = 'paid' AND ps.sale_id IS NULL)::int AS review_count
      FROM payment_sessions ps
      LEFT JOIN sales s ON s.id = ps.sale_id
      WHERE ${where}`,
-    params.slice(0, 6),
+    params.slice(0, 7),
   );
   const summary = totals.rows[0]!;
   const total = Number(summary.count);
@@ -1182,6 +1188,7 @@ export async function listPromptPaySessions(
         paidCount: Number(summary.paid_count),
         paidSatang: Number(summary.paid_satang),
         pendingCount: Number(summary.pending_count),
+        reviewCount: Number(summary.review_count),
       },
     },
   };

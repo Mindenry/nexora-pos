@@ -19,6 +19,12 @@ export interface PrintableReceipt {
     taxId?: string;
     address?: string;
     phone?: string;
+    receiptAccent?: string;
+    receiptLogoUrl?: string;
+    receiptHeaderNote?: string;
+    receiptShowCashier?: boolean;
+    receiptShowTaxId?: boolean;
+    receiptPaperWidth?: '80mm' | 'a4';
   };
   store?: { name?: string; address?: string; phone?: string; taxId?: string };
   cashier?: string;
@@ -85,14 +91,22 @@ export function printReceipt(receipt: PrintableReceipt): void {
   const vatPercent = ((receipt.vatRateBp ?? 700) / 100).toFixed(0);
   const title = isRefund ? 'ใบเสร็จคืนสินค้า / REFUND' : 'ใบเสร็จรับเงิน / RECEIPT';
   const stamp = isRefund ? 'REFUND' : receipt.reprint ? 'REPRINT' : '';
+  const isA4 = receipt.business?.receiptPaperWidth === 'a4';
+  const paperSize = isA4 ? 'A4' : '80mm auto';
+  const paperWidth = isA4 ? '190mm' : '72mm';
+  const accent = receipt.business?.receiptAccent ?? '#2AA78C';
+  const logoUrl = receipt.business?.receiptLogoUrl;
+  const showCashier = receipt.business?.receiptShowCashier !== false;
+  const showTaxId = receipt.business?.receiptShowTaxId !== false;
 
   const html = `<!doctype html><html lang="th"><head><meta charset="utf-8"><title>${escapeHtml(receipt.number)}</title>
   <style>
-    @page { size: 80mm auto; margin: 4mm; }
+    @page { size: ${paperSize}; margin: 4mm; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body { font-family: 'IBM Plex Sans Thai','Noto Sans Thai','Sarabun','Segoe UI',sans-serif; color:#000; font-size:10px; line-height:1.45; background:#eef0ed; }
-    .paper { width:72mm; margin:0 auto; padding:3mm; background:#fff; box-shadow:0 0 0 1px #d9ddd8, 0 8px 24px rgba(15,21,19,.12); }
+    .paper { width:${paperWidth}; margin:0 auto; padding:3mm; background:#fff; box-shadow:0 0 0 1px #d9ddd8, 0 8px 24px rgba(15,21,19,.12); }
+    .logo { width:16mm; max-height:16mm; display:block; margin:0 auto 2mm; object-fit:contain; }
     .center { text-align:center; }
     .mark { width: 9mm; height: 9mm; margin: 0 auto 2mm; border: 1.5px solid #000; border-radius: 2mm; font-size: 14px; font-weight: 800; line-height: 9mm; letter-spacing: 0; }
     .brand { font-size: 13px; font-weight: 800; letter-spacing: .24em; }
@@ -131,7 +145,7 @@ export function printReceipt(receipt: PrintableReceipt): void {
     .print-toolbar strong { letter-spacing:.18em; font-size:9px; }
     .print-toolbar .actions { display:flex; gap:1.5mm; }
     .print-toolbar button { border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.08); color:#fff; border-radius:1.5mm; padding:1.2mm 2.5mm; font-size:9px; font-family:inherit; }
-    .print-toolbar button.primary { background:#2aa78c; border-color:#2aa78c; font-weight:700; }
+    .print-toolbar button.primary { background:${accent}; border-color:${accent}; font-weight:700; }
     @media print {
       .print-toolbar { display:none !important; }
       body { margin:0; background:#fff; }
@@ -147,14 +161,15 @@ export function printReceipt(receipt: PrintableReceipt): void {
     </div>
     <div class="paper">
     <div class="center">
-      <div class="mark">N</div>
+      ${logoUrl ? `<img class="logo" src="${escapeHtml(logoUrl)}" alt="" />` : `<div class="mark">N</div>`}
       <div class="brand">NEXORA</div>
       <div class="muted">POINT OF SALE · THAILAND</div>
       <div class="business">${escapeHtml(receipt.business?.name ?? 'NEXORA')}</div>
       ${receipt.business?.legalName ? `<div class="muted">${escapeHtml(receipt.business.legalName)}</div>` : ''}
+      ${receipt.business?.receiptHeaderNote ? `<div class="muted">${escapeHtml(receipt.business.receiptHeaderNote)}</div>` : ''}
       <div class="muted">${escapeHtml(receipt.store?.name ?? '')}</div>
       <div class="muted">${escapeHtml(receipt.store?.address ?? receipt.business?.address ?? '')}</div>
-      <div class="muted">${escapeHtml(receipt.business?.phone ?? '')}${receipt.business?.taxId ? ` · เลขประจำตัวผู้เสียภาษี ${escapeHtml(receipt.business.taxId)}` : ''}</div>
+      <div class="muted">${escapeHtml(receipt.business?.phone ?? '')}${showTaxId && receipt.business?.taxId ? ` · เลขประจำตัวผู้เสียภาษี ${escapeHtml(receipt.business.taxId)}` : ''}</div>
       <div class="title ${isRefund ? 'refund' : ''}">${title}</div>
       ${stamp ? `<div class="stamp">${stamp}</div>` : ''}
     </div>
@@ -164,7 +179,7 @@ export function printReceipt(receipt: PrintableReceipt): void {
     <div class="meta"><span class="label">เลขที่ใบเสร็จ</span><span class="number">${escapeHtml(receipt.number)}</span></div>
     ${receipt.originalNumber ? `<div class="meta"><span class="label">อ้างอิงใบเดิม</span><span class="value">${escapeHtml(receipt.originalNumber)}</span></div>` : ''}
     <div class="meta"><span class="label">วันที่ / เวลา</span><span class="value">${escapeHtml(formatDateTime(receipt.issuedAt ?? new Date(), 'th'))}</span></div>
-    <div class="meta"><span class="label">พนักงานขาย</span><span class="value">${escapeHtml(receipt.cashier ?? '')}</span></div>
+    ${showCashier ? `<div class="meta"><span class="label">พนักงานขาย</span><span class="value">${escapeHtml(receipt.cashier ?? '')}</span></div>` : ''}
     ${receipt.customer ? `<div class="meta"><span class="label">ลูกค้า</span><span class="value">${escapeHtml(receipt.customer.name ?? '')}</span></div>` : ''}
 
     <hr class="rule" />

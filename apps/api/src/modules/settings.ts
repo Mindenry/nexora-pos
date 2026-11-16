@@ -34,8 +34,15 @@ export function settingsRoutes(): Router {
            point_value_satang=COALESCE($14,point_value_satang),
            loyalty_redemption_enabled=COALESCE($15,loyalty_redemption_enabled),
            offline_cash_enabled=COALESCE($16,offline_cash_enabled),
-           discount_limit_bp=COALESCE($17,discount_limit_bp), updated_at=now()
-         WHERE tenant_id=$18 AND id=$19
+           discount_limit_bp=COALESCE($17,discount_limit_bp),
+           receipt_accent=COALESCE($18,receipt_accent),
+           receipt_logo_url=COALESCE($19,receipt_logo_url),
+           receipt_header_note=COALESCE($20,receipt_header_note),
+           receipt_show_cashier=COALESCE($21,receipt_show_cashier),
+           receipt_show_tax_id=COALESCE($22,receipt_show_tax_id),
+           receipt_paper_width=COALESCE($23,receipt_paper_width),
+           updated_at=now()
+         WHERE tenant_id=$24 AND id=$25
          RETURNING *`,
         [
           input.name ?? null,
@@ -55,6 +62,12 @@ export function settingsRoutes(): Router {
           input.loyaltyRedemptionEnabled ?? null,
           input.offlineCashEnabled ?? null,
           input.discountLimitBp ?? null,
+          input.receiptAccent ?? null,
+          input.receiptLogoUrl ?? null,
+          input.receiptHeaderNote ?? null,
+          input.receiptShowCashier ?? null,
+          input.receiptShowTaxId ?? null,
+          input.receiptPaperWidth ?? null,
           ctx.tenant!.id,
           business.id,
         ],

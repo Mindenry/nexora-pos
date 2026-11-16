@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { z } from 'zod';
 import { NexoraError } from '@nexora/shared';
 import { requirePermission } from '../http/auth';
@@ -23,14 +23,16 @@ const FORMATS: Record<string, { ext: string; magic: number[] }> = {
 export function uploadRoutes(): Router {
   const router = Router();
 
-  router.post('/uploads/product-image', requirePermission('products.update'), async (req, res) => {
-    const input = z
-      .object({
-        mimeType: z.enum(['image/png', 'image/jpeg', 'image/webp']),
-        dataBase64: z.string().min(32).max(1_800_000),
-      })
-      .parse(req.body);
+  const imageInput = z.object({
+    mimeType: z.enum(['image/png', 'image/jpeg', 'image/webp']),
+    dataBase64: z.string().min(32).max(1_800_000),
+  });
 
+  async function storeImage(
+    req: Request,
+    input: z.infer<typeof imageInput>,
+    action: string,
+  ): Promise<{ url: string; bytes: number; mimeType: string }> {
     const format = FORMATS[input.mimeType]!;
     const data = Buffer.from(input.dataBase64.replace(/^data:[^;]+;base64,/, ''), 'base64');
     if (data.byteLength === 0 || data.byteLength > MAX_BYTES) {
@@ -55,15 +57,24 @@ export function uploadRoutes(): Router {
         storeId: ctx.store?.id ?? null,
         actorUserId: ctx.user.id,
         actorName: ctx.user.name,
-        action: 'product.image_uploaded',
+        action,
         entityType: 'upload',
         entityId: filename,
         after: { bytes: data.byteLength, mimeType: input.mimeType },
         correlationId: ctx.correlationId,
       });
     });
+    return { url: `/uploads/${filename}`, bytes: data.byteLength, mimeType: input.mimeType };
+  }
 
-    created(res, { url: `/uploads/${filename}`, bytes: data.byteLength, mimeType: input.mimeType });
+  router.post('/uploads/product-image', requirePermission('products.update'), async (req, res) => {
+    const input = imageInput.parse(req.body);
+    created(res, await storeImage(req, input, 'product.image_uploaded'));
+  });
+
+  router.post('/uploads/brand-logo', requirePermission('settings.manage'), async (req, res) => {
+    const input = imageInput.parse(req.body);
+    created(res, await storeImage(req, input, 'settings.brand_logo_uploaded'));
   });
 
   return router;

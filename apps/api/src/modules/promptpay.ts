@@ -22,6 +22,7 @@ import {
   listWebhookEvents,
   processWebhookEvent,
   rotatePaymentProviderSecret,
+  testPaymentProvider,
   updatePaymentProvider,
   verifyWebhookSignature,
 } from '../services/payment-providers';
@@ -172,6 +173,17 @@ export function promptpayRoutes(): Router {
     async (req, res) => {
       await req.ctx.withDb((client) => deletePaymentProvider(client, req.ctx));
       noContent(res);
+    },
+  );
+
+  router.post(
+    '/promptpay/provider/test',
+    requirePermission('promptpay.providers.manage'),
+    async (req, res) => {
+      const result = await req.ctx.withDb((client) =>
+        testPaymentProvider(client, req.ctx.tenant!.id),
+      );
+      ok(res, result);
     },
   );
 

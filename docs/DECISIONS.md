@@ -85,6 +85,28 @@ and updates automatically. The receiver is not a bank API and stays inactive
 until a provider is configured. SMS/notification scraping and banking-app
 automation are rejected.
 
+## ADR-012 — Local deployment gets a supervised agent and tenant health page
+**Date:** 2026-11-17 · **Status:** accepted
+
+A POS that silently loses its web server is unusable on a tablet. The project now
+ships a dependency-free Node supervisor (`scripts/nexora-agent.mjs`) that starts
+the built API and LAN static/proxy server, health-checks ports every 10 seconds
+and restarts a dead child. A Windows Scheduled Task starts it at logon. The
+tenant-facing `/system` page surfaces the checks that matter operationally:
+pending QR, paid-but-unlinked payments, rejected webhooks, low stock and provider
+state. This is intentionally a single-tenant local supervisor, not a clustered
+orchestrator.
+
+## ADR-013 — Receipt branding is snapshotted, not dynamically rendered
+**Date:** 2026-11-17 · **Status:** accepted
+
+Receipts are legal/accounting artefacts. Logo, accent, header/footer and
+visibility flags are copied into `receipt_snapshot` at sale time. Later branding
+edits never alter historical receipts. The preview in Settings uses the exact
+same `ReceiptView` component; printing uses a separate 80mm/A4 stylesheet with a
+visible print window and toolbar button because Safari blocks silent hidden
+iframe printing.
+
 ## ADR-009 — SQL-first data access (`pg`), no ORM
 **Date:** 2026-11-16 · **Status:** accepted
 

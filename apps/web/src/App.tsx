@@ -22,6 +22,7 @@ const PromptPayPage = lazy(() =>
 const ReportsPage = lazy(() => import('./pages/reports').then((m) => ({ default: m.ReportsPage })));
 const EmployeesPage = lazy(() => import('./pages/employees').then((m) => ({ default: m.EmployeesPage })));
 const SettingsPage = lazy(() => import('./pages/settings').then((m) => ({ default: m.SettingsPage })));
+const SystemPage = lazy(() => import('./pages/system').then((m) => ({ default: m.SystemPage })));
 const PlatformPage = lazy(() => import('./pages/platform').then((m) => ({ default: m.PlatformPage })));
 const CustomerDisplayPage = lazy(() => import('./pages/display').then((m) => ({ default: m.CustomerDisplayPage })));
 
@@ -112,6 +113,7 @@ export const router = createBrowserRouter([
           { path: 'reports', element: <ReportsPage /> },
           { path: 'employees', element: <EmployeesPage /> },
           { path: 'settings', element: <SettingsPage /> },
+          { path: 'system', element: <SystemPage /> },
         ],
       },
       {

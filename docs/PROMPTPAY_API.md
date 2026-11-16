@@ -125,6 +125,7 @@ All provider endpoints require `promptpay.providers.manage` (owner/manager).
 | PATCH | `/promptpay/provider` | Update name, active flag, auto-confirm |
 | DELETE | `/promptpay/provider` | Remove config and its event history |
 | POST | `/promptpay/provider/rotate` | Rotate secret; returns the new secret once |
+| POST | `/promptpay/provider/test` | Signed self-test; records `ignored/session_not_found`, never moves money |
 | GET | `/promptpay/provider/events?limit=20` | Recent webhook events |
 
 `GET /promptpay/provider`:
@@ -299,7 +300,8 @@ Errors:
 
 Permission: `payments.read`  
 Query: `page`, `pageSize`, `status`, `search` (reference or sale number), `from`,
-`to` (`YYYY-MM-DD`).
+`to` (`YYYY-MM-DD`), `review=1` (paid sessions not linked to a sale). The meta
+summary includes `reviewCount`.
 
 Returns session rows plus:
 

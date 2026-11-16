@@ -90,6 +90,7 @@ export interface PromptPayListMeta {
     paidCount: number;
     paidSatang: number;
     pendingCount: number;
+    reviewCount: number;
   };
 }
 
@@ -177,6 +178,11 @@ export const promptPayApi = {
       method: 'POST',
     }),
   deleteProvider: () => api<null>('/promptpay/provider', { method: 'DELETE' }),
+  testProvider: () =>
+    api<{ ok: boolean; status: number; eventStatus?: string; reason?: string; eventId: string }>(
+      '/promptpay/provider/test',
+      { method: 'POST' },
+    ),
   listProviderEvents: () => api<PaymentProviderEvent[]>('/promptpay/provider/events?limit=20'),
   listSessions: (params: {
     page?: number;
@@ -185,6 +191,7 @@ export const promptPayApi = {
     search?: string;
     from?: string;
     to?: string;
+    review?: boolean;
   }) =>
     api<PromptPaySessionListRow[]>(
       `/promptpay/sessions${qs({
@@ -194,6 +201,7 @@ export const promptPayApi = {
         search: params.search || undefined,
         from: params.from || undefined,
         to: params.to || undefined,
+        review: params.review || undefined,
       })}`,
     ),
   createSession: (body: PromptPaySessionCreateBody) =>

@@ -20,6 +20,9 @@ ledger, RBAC, tenant isolation, offline cash sales and a real PostgreSQL schema.
   encrypted accounts, staff-confirmed settlement, audit trail and sale binding —
   no bank API or merchant account required for QR generation. A signed provider
   webhook can auto-confirm and update the POS when a bank/PSP is contracted.
+- Receipt branding (logo, accent, header/footer, 80mm/A4), a tenant system-health
+  page, signed-webhook diagnostics/reconciliation, a PWA offline app shell and a
+  Windows LAN agent that auto-starts and restarts the API/web servers.
 - Checkout → payment → stock movement → receipt → shift cash, in one transaction.
 - Refunds linked to sale lines, stock transfers, purchase receiving, stock counts.
 - Reports computed from sales/ledger data (sales, profit, inventory, tax, staff).
@@ -70,6 +73,8 @@ Wi-Fi and that the router does not enable AP/client isolation.
 | `npm run dev` | API + web in watch mode |
 | `npm run serve:lan` | Build the SPA and serve it on `0.0.0.0:5173` for iPad/LAN testing |
 | `npm run lan` | Serve the existing `apps/web/dist` on the LAN without rebuilding |
+| `npm run agent` | Supervise built API + LAN server with auto-restart |
+| `scripts/install-agent.ps1` | Register the agent as a logon Scheduled Task |
 | `npm run build` | Bundle API and build SPA |
 | `npm run typecheck` | Strict TypeScript across workspaces |
 | `npm run lint` | ESLint |

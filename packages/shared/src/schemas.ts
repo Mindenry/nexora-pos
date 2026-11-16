@@ -208,6 +208,7 @@ export const promptpaySessionQuerySchema = listQuerySchema.extend({
   status: z.enum(['pending', 'paid', 'cancelled', 'expired', 'failed', 'refunded']).optional(),
   from: dateStringSchema.optional(),
   to: dateStringSchema.optional(),
+  review: z.coerce.boolean().optional(),
 });
 
 export const paymentProviderUpdateSchema = z.object({
@@ -426,6 +427,15 @@ export const businessSettingsSchema = z.object({
   pricesIncludeTax: z.boolean().optional(),
   receiptFooter: z.string().max(500).optional().or(z.literal('')),
   receiptPrefix: z.string().trim().max(10).optional(),
+  receiptAccent: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'VALIDATION_COLOR')
+    .optional(),
+  receiptLogoUrl: z.string().max(500).optional().or(z.literal('')),
+  receiptHeaderNote: z.string().max(200).optional().or(z.literal('')),
+  receiptShowCashier: z.boolean().optional(),
+  receiptShowTaxId: z.boolean().optional(),
+  receiptPaperWidth: z.enum(['80mm', 'a4']).optional(),
   loyaltyEarnPerBaht: z.number().int().min(0).max(1000).optional(),
   pointValueSatang: z.number().int().min(0).max(100_000).optional(),
   loyaltyRedemptionEnabled: z.boolean().optional(),

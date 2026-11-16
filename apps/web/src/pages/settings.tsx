@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Save, ShieldCheck } from 'lucide-react';
+import { Plus, Save, ShieldCheck, Upload } from 'lucide-react';
 import { api, errorMessage, qs } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useLang } from '../lib/i18n';
@@ -57,6 +57,7 @@ export function SettingsPage() {
   const toast = useToast();
   const [tab, setTab] = useState<'business' | 'payments' | 'receipt' | 'audit'>('business');
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [form, setForm] = useState({
     name: '',
     legalName: '',
@@ -70,6 +71,12 @@ export function SettingsPage() {
     pricesIncludeTax: true,
     receiptFooter: '',
     receiptPrefix: 'R',
+    receiptAccent: '#2AA78C',
+    receiptLogoUrl: '',
+    receiptHeaderNote: '',
+    receiptShowCashier: true,
+    receiptShowTaxId: true,
+    receiptPaperWidth: '80mm' as '80mm' | 'a4',
     loyaltyEarnPerBaht: 1,
     pointValueSatang: 100,
     loyaltyRedemptionEnabled: true,
@@ -94,6 +101,12 @@ export function SettingsPage() {
       pricesIncludeTax: b.pricesIncludeTax,
       receiptFooter: b.receiptFooter,
       receiptPrefix: b.receiptPrefix,
+      receiptAccent: b.receiptAccent,
+      receiptLogoUrl: b.receiptLogoUrl,
+      receiptHeaderNote: b.receiptHeaderNote,
+      receiptShowCashier: b.receiptShowCashier,
+      receiptShowTaxId: b.receiptShowTaxId,
+      receiptPaperWidth: b.receiptPaperWidth,
       loyaltyEarnPerBaht: b.loyaltyEarnPerBaht,
       pointValueSatang: b.pointValueSatang,
       loyaltyRedemptionEnabled: b.loyaltyRedemptionEnabled,
@@ -136,6 +149,12 @@ export function SettingsPage() {
           pricesIncludeTax: form.pricesIncludeTax,
           receiptFooter: form.receiptFooter,
           receiptPrefix: form.receiptPrefix,
+          receiptAccent: form.receiptAccent,
+          receiptLogoUrl: form.receiptLogoUrl,
+          receiptHeaderNote: form.receiptHeaderNote,
+          receiptShowCashier: form.receiptShowCashier,
+          receiptShowTaxId: form.receiptShowTaxId,
+          receiptPaperWidth: form.receiptPaperWidth,
           loyaltyEarnPerBaht: form.loyaltyEarnPerBaht,
           pointValueSatang: form.pointValueSatang,
           loyaltyRedemptionEnabled: form.loyaltyRedemptionEnabled,
@@ -150,6 +169,36 @@ export function SettingsPage() {
       toast.error(t('บันทึกไม่สำเร็จ', 'Save failed'), errorMessage(error, locale));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const uploadLogo = async (file: File) => {
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast.error(t('ไฟล์ไม่รองรับ', 'Unsupported file'), 'PNG, JPEG or WebP');
+      return;
+    }
+    if (file.size > 1_300_000) {
+      toast.error(t('ไฟล์ใหญ่เกินไป', 'File too large'), '≤ 1.3 MB');
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const dataBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ''));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const result = await api<{ url: string }>('/uploads/brand-logo', {
+        method: 'POST',
+        body: { mimeType: file.type, dataBase64 },
+      });
+      setForm((prev) => ({ ...prev, receiptLogoUrl: result.data.url }));
+      toast.success(t('อัปโหลดโลโก้แล้ว', 'Logo uploaded'), t('กดบันทึกเพื่อใช้งาน', 'Save to apply'));
+    } catch (error) {
+      toast.error(t('อัปโหลดไม่สำเร็จ', 'Upload failed'), errorMessage(error, locale));
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -180,6 +229,12 @@ export function SettingsPage() {
       taxId: form.taxId,
       address: form.address,
       phone: form.phone,
+      receiptAccent: form.receiptAccent,
+      receiptLogoUrl: form.receiptLogoUrl,
+      receiptHeaderNote: form.receiptHeaderNote,
+      receiptShowCashier: form.receiptShowCashier,
+      receiptShowTaxId: form.receiptShowTaxId,
+      receiptPaperWidth: form.receiptPaperWidth,
     },
     store: { name: me?.store?.name },
     cashier: me?.employee?.displayName,
@@ -201,9 +256,9 @@ export function SettingsPage() {
         title={t('ตั้งค่าร้าน', 'Store settings')}
         description={t('ภาษี ใบเสร็จ การชำระเงิน และการตรวจสอบย้อนหลัง', 'Tax, receipts, payments and audit.')}
         actions={
-          tab === 'business' ? (
+          tab === 'business' || tab === 'receipt' ? (
             <Button variant="primary" leftIcon={<Save className="h-4 w-4" />} loading={saving} onClick={() => void saveBusiness()}>
-              {t('บันทึก', 'Save changes')}
+              {tab === 'receipt' ? t('บันทึกใบเสร็จ', 'Save receipt') : t('บันทึก', 'Save changes')}
             </Button>
           ) : tab === 'payments' ? (
             <Button variant="primary" leftIcon={<Save className="h-4 w-4" />} loading={saving} onClick={() => void saveMethods()}>
@@ -337,12 +392,154 @@ export function SettingsPage() {
           )}
         </Card>
       ) : tab === 'receipt' ? (
-        <div className="grid gap-4 xl:grid-cols-2">
-          <Card className="p-5">
-            <p className="mb-3 text-[12px] font-medium">{t('ตัวอย่างใบเสร็จ', 'Receipt preview')}</p>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+          <Card className="h-fit p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[12px] font-medium">{t('ตัวอย่างใบเสร็จ', 'Receipt preview')}</p>
+              <span className="text-[10px] text-faint">
+                {form.receiptPaperWidth === 'a4' ? 'A4' : '80mm'}
+              </span>
+            </div>
             <ReceiptView receipt={sampleReceipt} />
           </Card>
           <div className="space-y-4">
+            <Card>
+              <CardHeader
+                title={t('แบรนด์ใบเสร็จ', 'Receipt branding')}
+                description={t(
+                  'โลโก้ สี และข้อความหัว/ท้ายใบเสร็จจะถูกบันทึกเป็น snapshot ของแต่ละบิล',
+                  'Logo, colour and header/footer text are copied into each sale snapshot.',
+                )}
+              />
+              <div className="space-y-3 px-5 pb-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label={t('สีหลัก', 'Accent colour')}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={form.receiptAccent}
+                        onChange={(event) =>
+                          setForm({ ...form, receiptAccent: event.target.value.toUpperCase() })
+                        }
+                        className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-line bg-surface p-1"
+                        aria-label={t('เลือกสีหลัก', 'Choose accent colour')}
+                      />
+                      <Input
+                        value={form.receiptAccent}
+                        onChange={(event) =>
+                          setForm({ ...form, receiptAccent: event.target.value.toUpperCase() })
+                        }
+                        maxLength={7}
+                        className="font-mono"
+                      />
+                    </div>
+                  </Field>
+                  <Field label={t('ขนาดกระดาษ', 'Paper size')}>
+                    <Select
+                      value={form.receiptPaperWidth}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          receiptPaperWidth: event.target.value as '80mm' | 'a4',
+                        })
+                      }
+                    >
+                      <option value="80mm">{t('ใบเสร็จ 80mm', 'Receipt 80mm')}</option>
+                      <option value="a4">{t('เอกสาร A4', 'A4 document')}</option>
+                    </Select>
+                  </Field>
+                </div>
+
+                <Field
+                  label={t('โลโก้ร้าน', 'Shop logo')}
+                  hint={t('PNG/JPEG/WebP ไม่เกิน 1.3 MB', 'PNG/JPEG/WebP, up to 1.3 MB')}
+                >
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border border-line bg-surface-2">
+                      {form.receiptLogoUrl ? (
+                        <img src={form.receiptLogoUrl} alt="" className="h-full w-full object-contain" />
+                      ) : (
+                        <span className="text-[11px] text-faint">Logo</span>
+                      )}
+                    </span>
+                    <label className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-surface px-3 text-[12px] font-medium text-muted hover:border-line-strong hover:text-text">
+                      <Upload className="h-3.5 w-3.5" />
+                      {uploadingLogo ? t('กำลังอัปโหลด…', 'Uploading…') : t('อัปโหลดโลโก้', 'Upload logo')}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="sr-only"
+                        disabled={uploadingLogo}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          if (file) void uploadLogo(file);
+                          event.target.value = '';
+                        }}
+                      />
+                    </label>
+                    {form.receiptLogoUrl ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-danger"
+                        onClick={() => setForm({ ...form, receiptLogoUrl: '' })}
+                      >
+                        {t('ลบโลโก้', 'Remove logo')}
+                      </Button>
+                    ) : null}
+                  </div>
+                </Field>
+
+                <Field
+                  label={t('ข้อความหัวใบเสร็จ', 'Receipt header note')}
+                  hint={t('เช่น สาขา / โทรศัพท์ / ข้อความต้อนรับ', 'e.g. branch, phone, welcome note')}
+                >
+                  <Input
+                    value={form.receiptHeaderNote}
+                    onChange={(event) =>
+                      setForm({ ...form, receiptHeaderNote: event.target.value })
+                    }
+                    maxLength={200}
+                    placeholder={t('ยินดีต้อนรับ / Welcome', 'Welcome')}
+                  />
+                </Field>
+                <Field label={t('ข้อความท้ายใบเสร็จ', 'Receipt footer')}>
+                  <Textarea
+                    value={form.receiptFooter}
+                    onChange={(event) => setForm({ ...form, receiptFooter: event.target.value })}
+                    rows={2}
+                    maxLength={500}
+                    placeholder={t('ขอบคุณที่ใช้บริการ', 'Thank you for your visit')}
+                  />
+                </Field>
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <label className="flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[12px]">
+                    <input
+                      type="checkbox"
+                      checked={form.receiptShowCashier}
+                      onChange={(event) =>
+                        setForm({ ...form, receiptShowCashier: event.target.checked })
+                      }
+                      className="h-4 w-4 accent-[var(--jade)]"
+                    />
+                    {t('แสดงชื่อพนักงานขาย', 'Show cashier name')}
+                  </label>
+                  <label className="flex items-center gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[12px]">
+                    <input
+                      type="checkbox"
+                      checked={form.receiptShowTaxId}
+                      onChange={(event) =>
+                        setForm({ ...form, receiptShowTaxId: event.target.checked })
+                      }
+                      className="h-4 w-4 accent-[var(--jade)]"
+                    />
+                    {t('แสดงเลขผู้เสียภาษี', 'Show tax ID')}
+                  </label>
+                </div>
+              </div>
+            </Card>
+
             <Card>
               <CardHeader title={t('ข้อมูลที่ต้องตรวจสอบก่อนใช้จริง', 'Before going live')} />
               <div className="space-y-2 px-5 pb-5 text-[12px] text-muted">

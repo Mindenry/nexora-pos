@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Activity,
   BarChart3,
   Bell,
   Boxes,
@@ -88,6 +89,7 @@ const NAV_GROUPS: Array<{ key: string; labelTh: string; labelEn: string; items: 
     labelEn: 'Administration',
     items: [
       { to: '/employees', icon: UserCog, labelTh: 'พนักงาน', labelEn: 'Employees', permission: 'employees.manage' },
+      { to: '/system', icon: Activity, labelTh: 'สถานะระบบ', labelEn: 'System health', permission: 'settings.manage' },
       { to: '/settings', icon: Settings, labelTh: 'ตั้งค่า', labelEn: 'Settings', permission: 'settings.manage' },
     ],
   },
@@ -106,6 +108,7 @@ const PAGE_TITLES: Array<{ prefix: string; th: string; en: string }> = [
   { prefix: '/promotions', th: 'โปรโมชั่น', en: 'Promotions' },
   { prefix: '/reports', th: 'รายงาน', en: 'Reports' },
   { prefix: '/employees', th: 'พนักงาน', en: 'Employees' },
+  { prefix: '/system', th: 'สถานะระบบ', en: 'System health' },
   { prefix: '/settings', th: 'ตั้งค่า', en: 'Settings' },
   { prefix: '/onboarding', th: 'เริ่มต้นใช้งาน', en: 'Getting started' },
   { prefix: '/platform', th: 'แพลตฟอร์ม', en: 'Platform' },

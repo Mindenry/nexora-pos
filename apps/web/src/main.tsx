@@ -16,6 +16,21 @@ import { ThemeProvider } from './lib/theme';
 import { ToastProvider } from './components/ui';
 import { AppErrorBoundary } from './components/error-boundary';
 
+if ('serviceWorker' in navigator) {
+  if (import.meta.env.PROD) {
+    window.addEventListener('load', () => {
+      void navigator.serviceWorker.register('/sw.js').catch(() => {
+        // An offline shell is optional; the app still runs online.
+      });
+    });
+  } else {
+    // Avoid a production shell worker intercepting the Vite dev server.
+    void navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) void registration.unregister();
+    });
+  }
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>

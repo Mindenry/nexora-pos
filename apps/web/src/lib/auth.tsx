@@ -47,6 +47,12 @@ export interface Me {
     pricesIncludeTax: boolean;
     receiptPrefix: string;
     receiptFooter: string;
+    receiptAccent: string;
+    receiptLogoUrl: string;
+    receiptHeaderNote: string;
+    receiptShowCashier: boolean;
+    receiptShowTaxId: boolean;
+    receiptPaperWidth: '80mm' | 'a4';
     loyaltyEarnPerBaht: number;
     pointValueSatang: number;
     loyaltyRedemptionEnabled: boolean;

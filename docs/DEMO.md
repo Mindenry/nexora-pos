@@ -105,6 +105,16 @@ treats QR generation, scanning or expiry as proof of payment. See
 `docs/PROMPTPAY_*` for the full research, specification, security and test
 evidence.
 
+## Receipt branding and system health
+
+- **ตั้งค่า → ใบเสร็จ**: upload a logo, choose the accent colour, header/footer
+  text, show/hide cashier and tax ID, and switch 80mm/A4. The live preview uses
+  the same component as the real receipt.
+- **สถานะระบบ** (`/system`): API uptime, DB latency/size, pending QR, paid but
+  unlinked payments, rejected webhooks, low stock and PromptPay provider state.
+- **LAN agent**: `scripts/install-agent.ps1` registers a logon Scheduled Task
+  that supervises the built API and LAN server. Logs: `.nexora-agent.log`.
+
 ## iPad Pro / touch counter
 
 1. Open the web app in Safari on the iPad, sign in, then **Share → Add to Home

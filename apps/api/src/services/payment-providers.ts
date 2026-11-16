@@ -3,7 +3,7 @@ import type { Db, DbClient } from '@nexora/db';
 import { NexoraError } from '@nexora/shared';
 import type { RequestContext } from '../types';
 import { writeAudit } from './audit';
-import { encryptSecret } from './promptpay-crypto';
+import { decryptSecret, encryptSecret } from './promptpay-crypto';
 
 const PROVIDER = 'generic_webhook';
 
@@ -459,6 +459,72 @@ export async function processWebhookEvent(
 
     return { status: 'processed', reference: event.reference };
   });
+}
+
+/**
+ * Sends a fully signed synthetic event to our own public webhook. It cannot
+ * mark money paid (the reference does not exist), but it proves URL, HMAC,
+ * timestamp and event-log wiring end to end.
+ */
+export async function testPaymentProvider(
+  client: DbClient,
+  tenantId: string,
+): Promise<{
+  ok: boolean;
+  status: number;
+  eventStatus?: string;
+  reason?: string;
+  eventId: string;
+}> {
+  const config = await tenantConfig(client, tenantId);
+  if (!config) throw new NexoraError('NOT_FOUND', { entity: 'payment_provider' });
+  if (!config.is_active) {
+    throw new NexoraError('DOMAIN_PROMPTPAY_SESSION_STATE', { reason: 'provider_inactive' });
+  }
+  const eventId = `evt_test_${randomBytes(8).toString('hex')}`;
+  const reference = `TEST-${randomBytes(4).toString('hex').toUpperCase()}`;
+  const body = JSON.stringify({
+    eventId,
+    type: 'payment.received',
+    reference,
+    amountSatang: 1,
+    currency: 'THB',
+    transactionRef: 'CONNECTION-TEST',
+  });
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const secret = decryptSecret(config.secret_encrypted);
+  const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+  const verified = verifyWebhookSignature({
+    secret,
+    rawBody: body,
+    timestamp,
+    signature: `sha256=${signature}`,
+  });
+  if (!verified.valid) {
+    throw new NexoraError('INFRA_INTERNAL', { reason: 'webhook_self_check_failed' });
+  }
+
+  // A test event has a reference that cannot match a sale. It is recorded as
+  // ignored/session_not_found, proving signing and the event log without
+  // moving money. The public HTTP receiver is covered by the webhook tests.
+  await client.query(
+    `INSERT INTO payment_webhook_events
+      (tenant_id, config_id, event_id, status, reason, amount_satang, reference, payload_hash)
+     VALUES ($1,$2,$3,'ignored','session_not_found',1,$4,$5)
+     ON CONFLICT (config_id, event_id) DO NOTHING`,
+    [tenantId, config.id, eventId, reference, sha256(body)],
+  );
+  await client.query(
+    `UPDATE payment_provider_configs SET last_event_at = now() WHERE id = $1`,
+    [config.id],
+  );
+  return {
+    ok: true,
+    status: 200,
+    eventStatus: 'ignored',
+    reason: 'session_not_found',
+    eventId,
+  };
 }
 
 export async function listWebhookEvents(

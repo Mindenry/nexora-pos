@@ -55,6 +55,34 @@ browser ── HTTPS ── reverse proxy ── /api → node dist/index.js (AP
 6. Health check `/api/health`; alert on non-200 and on `INFRA_DB_UNAVAILABLE`.
 7. Do not horizontally scale until rate limiting and sessions move to Redis.
 
+## LAN agent (auto-start and auto-restart)
+
+Install once from an elevated PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install-agent.ps1
+```
+
+The scheduled task **NEXORA POS Agent** starts at logon. It supervises:
+- the built API (`apps/api/dist/index.js`), restarting by port health check;
+- the LAN SPA server (`scripts/lan-server.mjs`) on `0.0.0.0:5173`.
+
+Logs: `.nexora-agent.log`. Manual run: `npm run agent`. The agent restarts a
+crashed process within ~10 seconds; verified by killing the API and LAN server
+separately and watching both return.
+
+## System health
+
+Owners/managers can open **สถานะระบบ** (`/system`) for API uptime, DB latency and
+size, pending QR sessions, paid-but-unlinked payments, rejected webhooks, low
+stock, and PromptPay provider state. It refreshes every 30 seconds.
+
+## Receipt branding
+
+**ตั้งค่า → ใบเสร็จ** supports a logo, accent colour, header/footer text, cashier
+and tax-ID visibility, and 80mm/A4 output. Values are copied into each sale's
+immutable receipt snapshot.
+
 ## PromptPay operations
 
 - **Key**: set `PROMPTPAY_ENCRYPTION_KEY` from the platform secret manager in
@@ -114,10 +142,10 @@ browser ── HTTPS ── reverse proxy ── /api → node dist/index.js (AP
 3. Rotate to landscape for the 3-column product grid plus cart; portrait keeps a
    3-column grid with the cart beside it at 1024pt. Both were checked on an
    iPad Pro 11" viewport (1194×834 and 1024×1366) with touch input.
-4. Keep the terminal page open during the day. The PWA ships a manifest and
-   icons, but **no service worker yet**: a cold launch with no network does not
-   load the app shell. Offline cash sales work only while the page is already
-   loaded, backed by the IndexedDB outbox.
+4. The PWA now registers a service worker that caches the app shell, so a cold
+   launch without network can render the UI. API responses are deliberately not
+   cached. Offline cash sales still require an authenticated page with cached
+   catalog/outbox; test a cold-start offline sale before relying on it.
 5. Barcode scanners must use HID keyboard mode with an Enter suffix. The POS
    captures scans globally without stealing focus; stock counts and PO receiving
    have dedicated scan fields. Test one scan per device after pairing.

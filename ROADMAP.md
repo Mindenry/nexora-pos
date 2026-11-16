@@ -117,9 +117,19 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 - [ ] Connect a real bank/PSP provider (requires a contracted provider)
 - Reference: `docs/PROMPTPAY_*.md`
 
+## MILESTONE 10C — Production readiness & operations ✅
+- [x] Windows LAN agent: schedules API + LAN SPA, health-checks ports and restarts
+- [x] Tenant System Health page: API/DB, pending QR, paid-unlinked, webhook rejects, low stock
+- [x] Receipt branding: logo, accent, header/footer, cashier/tax visibility, 80mm/A4
+- [x] Brand logo upload (signature-checked) and immutable receipt snapshots
+- [x] Provider self-test event (signed, no money movement) + event log
+- [x] Paid-but-unlinked reconciliation filter and summary
+- [x] PWA service worker: cache-first assets + network-first app shell; no API caching
+- [x] Standalone API build bundles workspace packages; agent verified restarting both services
+
 ## MILESTONE 10 — Hardening & release 🟡
 - [x] Threat model and security controls (`docs/SECURITY.md`)
-- [x] Unit/property/integration tests: 86 passing
+- [x] Unit/property/integration tests: 89 passing
 - [x] E2E: 21 journeys passing on real Chrome (incl. offline, customer display,
       keyboard, loyalty, iPad touch, scanner, cash count, PromptPay manual and
       signed-webhook auto-confirm, 1024×768)

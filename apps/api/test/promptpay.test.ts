@@ -653,6 +653,40 @@ describe('signed provider webhook', () => {
   });
 });
 
+describe('provider diagnostics and reconciliation', () => {
+  it('sends a signed test event without moving money', async () => {
+    const test = await withStore(agent, storeId).post('/api/promptpay/provider/test').send({});
+    expect(test.status, JSON.stringify(test.body)).toBe(200);
+    expect(test.body.data.ok).toBe(true);
+    expect(test.body.data.eventStatus).toBe('ignored');
+    expect(test.body.data.reason).toBe('session_not_found');
+    expect(test.body.data.eventId).toMatch(/^evt_test_/);
+
+    const events = await withStore(agent, storeId).get('/api/promptpay/provider/events');
+    expect(events.body.data.some((row: { eventId: string }) => row.eventId === test.body.data.eventId)).toBe(true);
+  });
+
+  it('lists paid sessions that are not linked to a sale', async () => {
+    const session = await createSession(agent, randomUUID());
+    await withStore(agent, storeId)
+      .post(`/api/promptpay/sessions/${session.id}/confirm`)
+      .send({})
+      .expect(200);
+
+    const review = await withStore(agent, storeId).get(
+      '/api/promptpay/sessions?review=1&pageSize=100',
+    );
+    expect(review.status).toBe(200);
+    expect(review.body.meta.summary.reviewCount).toBeGreaterThan(0);
+    expect(review.body.data.some((row: { reference: string }) => row.reference === session.reference)).toBe(true);
+
+    const pendingOnly = await withStore(agent, storeId).get(
+      '/api/promptpay/sessions?review=1&status=pending&pageSize=100',
+    );
+    expect(pendingOnly.body.data).toHaveLength(0);
+  });
+});
+
 describe('PromptPay tender availability', () => {
   it('is present in the POS bootstrap and supports history filters', async () => {
     const bootstrap = await withStore(agent, storeId).get('/api/pos/bootstrap');

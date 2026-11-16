@@ -93,6 +93,12 @@ recorded as a negative `loyalty_ledger` entry (`redeem`). The sale stores
 | DELETE | `/pos/held/:id` | sales.create | |
 | POST | `/pos/stock-check` | sales.create | authoritative on-hand for cart variants |
 | POST | `/uploads/product-image` | products.update | PNG/JPEG/WebP base64 (≤1.3 MB), signature-checked, returns `/uploads/...` |
+| POST | `/uploads/brand-logo` | settings.manage | Receipt logo, same validation, returns `/uploads/...` |
+| GET | `/system/health` | settings.manage | API/DB, pending QR, paid-unlinked, webhook rejects, low stock, provider state |
+
+Receipt branding fields (`receiptAccent`, `receiptLogoUrl`, `receiptHeaderNote`,
+`receiptShowCashier`, `receiptShowTaxId`, `receiptPaperWidth`) are updated via
+`PUT /settings/business` and copied into each sale's immutable snapshot.
 
 Checkout payments may include `promptpaySessionId` for a `promptpay` tender. The
 server locks the session, requires `paid` status and an exact amount match, and
@@ -116,6 +122,7 @@ links it to exactly one sale. See `docs/PROMPTPAY_API.md` for the full contract.
 | POST | `/promptpay/sessions/:id/regenerate` | payments.confirm | new reference/expiry |
 | GET/POST/PATCH/DELETE | `/promptpay/provider` | promptpay.providers.manage | signed webhook provider config |
 | POST | `/promptpay/provider/rotate` | promptpay.providers.manage | rotate HMAC secret |
+| POST | `/promptpay/provider/test` | promptpay.providers.manage | signed self-test; never moves money |
 | GET | `/promptpay/provider/events` | promptpay.providers.manage | recent webhook events |
 | POST | `/payments/webhook/promptpay/:publicId` | public + HMAC signature | auto-confirm a paid session |
 
