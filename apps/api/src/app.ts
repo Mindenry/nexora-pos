@@ -15,7 +15,7 @@ import { inventoryRoutes } from './modules/inventory';
 import { peopleRoutes } from './modules/people';
 import { platformRoutes } from './modules/platform';
 import { posRoutes } from './modules/pos';
-import { promptpayRoutes } from './modules/promptpay';
+import { paymentWebhookRoutes, promptpayRoutes } from './modules/promptpay';
 import { promotionRoutes } from './modules/promotions';
 import { purchasingRoutes } from './modules/purchasing';
 import { reportRoutes } from './modules/reports';
@@ -38,7 +38,14 @@ export function createApp({ db, config }: AppDeps): Express {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', config.isProd ? 1 : false);
-  app.use(express.json({ limit: '2mb' }));
+  app.use(
+    express.json({
+      limit: '2mb',
+      verify: (req, _res, buffer) => {
+        (req as unknown as { rawBody?: Buffer }).rawBody = Buffer.from(buffer);
+      },
+    }),
+  );
   app.use(cookieParser());
   app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true, index: false, dotfiles: 'deny' }));
 
@@ -95,6 +102,9 @@ export function createApp({ db, config }: AppDeps): Express {
     skip: () => config.nodeEnv === 'test',
   });
   app.use('/api', globalLimiter);
+
+  // Public signed provider webhook; no session/CSRF, verified by HMAC instead.
+  app.use('/api/payments/webhook', paymentWebhookRoutes(db));
 
   const loginLimiter = rateLimit({
     windowMs: 15 * 60_000,

@@ -15,6 +15,7 @@ export type PermissionCode =
   | 'payments.confirm'
   | 'promptpay.accounts.read'
   | 'promptpay.accounts.manage'
+  | 'promptpay.providers.manage'
   | 'shifts.read'
   | 'shifts.open'
   | 'shifts.close'
@@ -57,6 +58,7 @@ export const PERMISSIONS: PermissionDefinition[] = [
   { code: 'payments.confirm', module: 'payments', labelTh: 'ยืนยันการชำระเงิน', labelEn: 'Confirm payments' },
   { code: 'promptpay.accounts.read', module: 'promptpay', labelTh: 'ดูบัญชีพร้อมเพย์', labelEn: 'View PromptPay accounts' },
   { code: 'promptpay.accounts.manage', module: 'promptpay', labelTh: 'จัดการบัญชีพร้อมเพย์', labelEn: 'Manage PromptPay accounts' },
+  { code: 'promptpay.providers.manage', module: 'promptpay', labelTh: 'จัดการการตรวจรับเงินอัตโนมัติ', labelEn: 'Manage automatic settlement' },
   { code: 'shifts.read', module: 'shifts', labelTh: 'ดูกะ', labelEn: 'View shifts' },
   { code: 'shifts.open', module: 'shifts', labelTh: 'เปิดกะ', labelEn: 'Open shifts' },
   { code: 'shifts.close', module: 'shifts', labelTh: 'ปิดกะ', labelEn: 'Close shifts' },
@@ -105,7 +107,7 @@ export const ROLE_DEFINITIONS: RoleDefinition[] = [
       'inventory.read', 'inventory.adjust', 'inventory.transfer', 'inventory.count',
       'sales.read', 'sales.create', 'sales.cancel', 'refunds.create',
       'payments.read', 'payments.confirm',
-      'promptpay.accounts.read', 'promptpay.accounts.manage',
+      'promptpay.accounts.read', 'promptpay.accounts.manage', 'promptpay.providers.manage',
       'shifts.read', 'shifts.open', 'shifts.close', 'shifts.cash',
       'customers.read', 'customers.manage', 'promotions.manage',
       'purchasing.read', 'purchasing.manage', 'purchasing.approve', 'suppliers.manage',

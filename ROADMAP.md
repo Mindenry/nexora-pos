@@ -111,14 +111,18 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 - [x] Static no-amount QR (download/print) for each receiving account
 - [x] Payment history/detail UI and refund/void status propagation
 - [x] 15 API integration tests + 3 PromptPay E2E journeys
-- [ ] Automatic provider verification (requires merchant/bank onboarding)
+- [x] Signed provider webhook adapter: HMAC, replay window, idempotent events,
+      auto-confirm, secret rotation and event log
+- [x] POS polls pending sessions and updates automatically when a webhook confirms
+- [ ] Connect a real bank/PSP provider (requires a contracted provider)
 - Reference: `docs/PROMPTPAY_*.md`
 
 ## MILESTONE 10 — Hardening & release 🟡
 - [x] Threat model and security controls (`docs/SECURITY.md`)
-- [x] Unit/property/integration tests: 82 passing
-- [x] E2E: 20 journeys passing on real Chrome (incl. offline, customer display,
-      keyboard, loyalty, iPad touch, scanner, cash count, PromptPay, 1024×768)
+- [x] Unit/property/integration tests: 86 passing
+- [x] E2E: 21 journeys passing on real Chrome (incl. offline, customer display,
+      keyboard, loyalty, iPad touch, scanner, cash count, PromptPay manual and
+      signed-webhook auto-confirm, 1024×768)
 - [x] Typecheck, lint and production build clean
 - [x] Browser visual review light/dark, desktop/mobile
 - [x] Backup + restore drill with money reconciliation

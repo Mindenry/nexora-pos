@@ -75,6 +75,9 @@ export function PromptPayPaymentDialog({
   const [cancelling, setCancelling] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const autoStarted = useRef(false);
+  const autoHandled = useRef<string | null>(null);
+  const onConfirmedRef = useRef(onConfirmed);
+  onConfirmedRef.current = onConfirmed;
 
   useEffect(() => {
     if (!open) {
@@ -176,6 +179,40 @@ export function PromptPayPaymentDialog({
       setCreating(false);
     }
   };
+
+  useEffect(() => {
+    if (!open || !session || session.status !== 'pending') return;
+    if (session.verificationMode?.mode !== 'automatic' || !session.verificationMode.autoConfirm) {
+      return;
+    }
+    let cancelled = false;
+    const timer = window.setInterval(async () => {
+      try {
+        const result = await promptPayApi.getSession(session.id);
+        if (cancelled) return;
+        if (result.data.status === 'paid') {
+          setSession(result.data);
+          if (autoHandled.current !== result.data.id) {
+            autoHandled.current = result.data.id;
+            onConfirmedRef.current(result.data);
+            feedback('success');
+            toast.success(
+              t('ระบบตรวจพบเงินเข้าแล้ว', 'Payment detected automatically'),
+              result.data.reference,
+            );
+          }
+        } else if (result.data.status !== session.status) {
+          setSession(result.data);
+        }
+      } catch {
+        // A transient network error should not stop the polling loop.
+      }
+    }, 4000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [open, session, t, toast]);
 
   const expiresIn = session
     ? Math.max(0, Math.floor((new Date(session.expiresAt).getTime() - now) / 1000))
@@ -329,11 +366,13 @@ export function PromptPayPaymentDialog({
             ) : null}
             {!terminal && !paid ? (
               <Button
-                variant="primary"
+                variant={session?.verificationMode?.mode === 'automatic' ? 'secondary' : 'primary'}
                 disabled={!canVerify || expired}
                 onClick={() => setConfirmStep(true)}
               >
-                {t('ยืนยันรับชำระเงิน', 'Verify payment')}
+                {session?.verificationMode?.mode === 'automatic'
+                  ? t('ยืนยันด้วยพนักงาน', 'Confirm manually')
+                  : t('ยืนยันรับชำระเงิน', 'Verify payment')}
               </Button>
             ) : null}
           </>
@@ -380,6 +419,33 @@ export function PromptPayPaymentDialog({
             </div>
             {session ? <PromptPayStatus session={session} expired={expired} /> : null}
           </div>
+
+          {session?.status === 'pending' ? (
+            session.verificationMode?.mode === 'automatic' &&
+            session.verificationMode.autoConfirm ? (
+              <div className="flex items-start gap-2 rounded-lg border border-info/20 bg-info-soft/60 px-3 py-2 text-[11px] text-info">
+                <RefreshCw className="mt-0.5 h-3.5 w-3.5 shrink-0 animate-spin" />
+                <span>
+                  {t('ระบบกำลังตรวจเงินเข้าอัตโนมัติผ่าน', 'Waiting for automatic confirmation via')}{' '}
+                  <span className="font-medium">
+                    {session.verificationMode.displayName ?? t('ผู้ให้บริการ', 'provider')}
+                  </span>
+                  {' · '}
+                  {t('อัปเดตทุก 4 วินาที', 'checks every 4 seconds')}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[10.5px] text-muted">
+                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-faint" />
+                <span>
+                  {t(
+                    'โหมดยืนยันด้วยพนักงาน: ตรวจยอดเงินในแอปธนาคารก่อนกดยืนยัน',
+                    'Manual mode: check the amount in your banking app before confirming.',
+                  )}
+                </span>
+              </div>
+            )
+          ) : null}
 
           {!session ? (
             <div className="py-8 text-center">

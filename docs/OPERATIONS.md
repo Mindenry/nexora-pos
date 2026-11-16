@@ -77,8 +77,15 @@ browser ── HTTPS ── reverse proxy ── /api → node dist/index.js (AP
 - **Backups**: `payment_sessions.payload_encrypted` is encrypted, but the
   database backup still contains payment amounts and masked identifiers. Encrypt
   backups and restrict access.
+- **Automatic provider**: configure a signed webhook under **พร้อมเพย์ → ตรวจรับ
+  อัตโนมัติ**. Rotate the HMAC secret if it leaks; the old secret stops working
+  immediately. The endpoint is public but rejects invalid signatures and stale
+  timestamps.
+- **Webhook monitoring**: alert on `rejected` events (especially
+  `amount_mismatch`), repeated `ignored/session_not_found`, and a spike in
+  duplicate events. Keep the provider event log for reconciliation.
 - **No bank API**: QR generation needs no merchant account. Automatic settlement
-  needs a contracted provider/webhook; the manual flow is the honest default.
+  needs a contracted provider/webhook; the manual flow remains the default.
 
 ## iPad / tablet counter setup
 

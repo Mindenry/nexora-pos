@@ -18,7 +18,8 @@ ledger, RBAC, tenant isolation, offline cash sales and a real PostgreSQL schema.
   loyalty points redemption, plan management.
 - PromptPay QR engine (mobile or national ID, static or fixed amount) with
   encrypted accounts, staff-confirmed settlement, audit trail and sale binding —
-  no bank API or merchant account required for QR generation.
+  no bank API or merchant account required for QR generation. A signed provider
+  webhook can auto-confirm and update the POS when a bank/PSP is contracted.
 - Checkout → payment → stock movement → receipt → shift cash, in one transaction.
 - Refunds linked to sale lines, stock transfers, purchase receiving, stock counts.
 - Reports computed from sales/ledger data (sales, profit, inventory, tax, staff).

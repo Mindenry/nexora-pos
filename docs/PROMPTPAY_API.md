@@ -114,7 +114,117 @@ Returns a reusable **no-amount** QR. No session is created.
 `payload` appears only when `NODE_ENV !== "production"` (debug copy button).
 Generating this QR does **not** mean money was received.
 
-## 2. Sessions
+## 2. Automatic settlement provider
+
+All provider endpoints require `promptpay.providers.manage` (owner/manager).
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/promptpay/provider` | Current config, secret never returned |
+| POST | `/promptpay/provider` | Create; returns the secret **once** |
+| PATCH | `/promptpay/provider` | Update name, active flag, auto-confirm |
+| DELETE | `/promptpay/provider` | Remove config and its event history |
+| POST | `/promptpay/provider/rotate` | Rotate secret; returns the new secret once |
+| GET | `/promptpay/provider/events?limit=20` | Recent webhook events |
+
+`GET /promptpay/provider`:
+
+```json
+{
+  "data": {
+    "id": "uuid",
+    "provider": "generic_webhook",
+    "displayName": "Bank webhook",
+    "publicId": "ppwh_…",
+    "webhookPath": "/api/payments/webhook/promptpay/ppwh_…",
+    "isActive": true,
+    "autoConfirm": true,
+    "lastEventAt": "2026-11-16T10:00:00.000Z",
+    "createdAt": "…",
+    "updatedAt": "…"
+  }
+}
+```
+
+Creation and rotation return:
+
+```json
+{ "data": { "config": { }, "secret": "whsec_…" } }
+```
+
+The secret is shown only in that response; it is stored encrypted.
+
+### Public webhook endpoint
+
+```
+POST /api/payments/webhook/promptpay/:publicId
+```
+
+No session cookie and no CSRF header. Authentication is the HMAC signature.
+
+Headers:
+
+```
+content-type: application/json
+x-nexora-event-id: evt_123
+x-nexora-timestamp: 1760000000
+x-nexora-signature: sha256=<hex>
+```
+
+Signature:
+
+```
+HMAC_SHA256(secret, `${timestamp}.${rawBody}`)
+```
+
+- Timestamp must be within ±300 seconds.
+- `x-nexora-event-id` must equal `body.eventId`.
+- Duplicate `(config, eventId)` is idempotent and does not create another
+  transaction.
+- The config must be active; otherwise `404`.
+- Invalid signature/timestamp → `401`.
+
+Body:
+
+```json
+{
+  "eventId": "evt_123",
+  "type": "payment.received",
+  "reference": "PP-04F8A1755AE3",
+  "amountSatang": 12900,
+  "currency": "THB",
+  "transactionRef": "BANK-TXN-001",
+  "paidAt": "2026-11-16T10:00:00.000Z",
+  "storeId": "uuid (optional)"
+}
+```
+
+Result `data.status`:
+
+| Status | Meaning |
+| --- | --- |
+| `processed` | Session marked paid and transaction inserted |
+| `already_paid` | Session was already paid/refunded; no duplicate transaction |
+| `ignored` | Unknown reference, auto-confirm disabled, or duplicate event |
+| `rejected` | Amount/store/state mismatch; session unchanged |
+
+When `autoConfirm` is false the event is recorded as `ignored` and a staff member
+must confirm manually.
+
+Session responses now include:
+
+```json
+"verificationMode": {
+  "mode": "automatic",
+  "autoConfirm": true,
+  "displayName": "Bank webhook"
+}
+```
+
+The POS polls a pending session every 4 seconds only when this is automatic and
+`autoConfirm` is true.
+
+## 3. Sessions
 
 ### `POST /promptpay/sessions`
 
@@ -257,7 +367,7 @@ Creates a new reference and expiry for a pending/expired session, keeping the
 amount and account. Writes `qr_regenerated` to the timeline. Returns the session
 with a new QR.
 
-## 3. Checkout binding
+## 4. Checkout binding
 
 `POST /pos/checkout` now accepts an optional `promptpaySessionId` on each
 payment:
@@ -300,13 +410,13 @@ Failure codes:
 
 Offline checkout with a PromptPay tender is rejected; offline mode is cash-only.
 
-## 4. Refunds
+## 5. Refunds
 
 When a sale is fully refunded or voided, linked sessions and transactions move
 to `refunded`. Partial refunds leave the session `paid` because money was only
 partially returned; the payment row becomes `partially_refunded`.
 
-## 5. Debug payload
+## 6. Debug payload
 
 `qr.payload` is returned only when `NODE_ENV !== "production"`. Production
 clients receive PNG/SVG only. The payload is still stored encrypted at rest for

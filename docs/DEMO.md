@@ -79,9 +79,28 @@ The platform admin has no tenant and lands on `/platform`.
    until a valid payment is verified.
 10. Fully refund the sale and confirm the session becomes **คืนเงินแล้ว**.
 
-Automatic settlement is not enabled. The demo never treats QR generation,
-scanning or expiry as proof of payment. See `docs/PROMPTPAY_*` for the full
-research, specification, security and test evidence.
+### Automatic settlement (requires a provider)
+
+The system can auto-detect a payment when a contracted bank/PSP sends a signed
+webhook. It does **not** discover bank transfers by itself.
+
+1. Open **พร้อมเพย์ → ตรวจรับอัตโนมัติ → สร้างปลายทาง Webhook**.
+2. Copy the webhook URL and the `whsec_…` secret (shown once).
+3. Configure the provider to POST `payment.received` with
+   `x-nexora-timestamp`, `x-nexora-signature` (HMAC-SHA256 of
+   `${timestamp}.${rawBody}`) and `x-nexora-event-id`.
+4. Turn **เปิดใช้งาน** and **ยืนยันอัตโนมัติ** on, then press **บันทึกการตั้งค่า**
+   (settings are written to PostgreSQL immediately).
+5. At the POS the QR dialog shows “waiting for automatic confirmation” and checks
+   every 4 seconds. When the signed event arrives it switches to paid and
+   enables checkout without staff action.
+6. The event log shows `processed`, `already_paid`, `ignored` or `rejected` with
+   the reason; secrets can be rotated or the connection removed.
+
+If no provider is configured, the system stays in manual mode. The demo never
+treats QR generation, scanning or expiry as proof of payment. See
+`docs/PROMPTPAY_*` for the full research, specification, security and test
+evidence.
 
 ## iPad Pro / touch counter
 

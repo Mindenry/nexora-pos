@@ -114,6 +114,10 @@ links it to exactly one sale. See `docs/PROMPTPAY_API.md` for the full contract.
 | POST | `/promptpay/sessions/:id/confirm` | payments.confirm | manual settlement |
 | POST | `/promptpay/sessions/:id/cancel` | payments.confirm | pending/expired only |
 | POST | `/promptpay/sessions/:id/regenerate` | payments.confirm | new reference/expiry |
+| GET/POST/PATCH/DELETE | `/promptpay/provider` | promptpay.providers.manage | signed webhook provider config |
+| POST | `/promptpay/provider/rotate` | promptpay.providers.manage | rotate HMAC secret |
+| GET | `/promptpay/provider/events` | promptpay.providers.manage | recent webhook events |
+| POST | `/payments/webhook/promptpay/:publicId` | public + HMAC signature | auto-confirm a paid session |
 
 Full request/response and error codes: `docs/PROMPTPAY_API.md`.
 

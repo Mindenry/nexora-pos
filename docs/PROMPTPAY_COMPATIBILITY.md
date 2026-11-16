@@ -41,6 +41,9 @@ environment. No bank is claimed as tested or certified.
 | Duplicate confirmation | concurrency test | One transaction |
 | Reuse of a verified session | API test | 409 |
 | iPad layout | 1194×834 touch viewport | Pass |
+| Signed webhook auto-confirm | API tests + E2E synthetic signed event | Pass |
+| Webhook signature/replay rejection | forged HMAC, stale timestamp | Rejected |
+| POS polls and updates automatically | E2E auto-detection journey | Pass |
 
 ## 3. What was not verified
 
@@ -48,7 +51,8 @@ environment. No bank is claimed as tested or certified.
   meaningful test was not available. Compliance is structural, not certified.
 - **No cross-border QR** (Thailand–Cambodia/Laos/Malaysia/Singapore/Vietnam etc.).
 - **No merchant bill payment (tag 30)**, e-wallet proxy, OTA, or card rails.
-- **No automatic settlement webhook** from a bank or PSP.
+- **No real bank/PSP webhook**. The signed receiver is tested with synthetic
+  events, but a contracted provider must be configured and certified.
 - **No real thermal printer or scanner**. Print output is browser print; a
   scan test with a physical printer is recommended before deployment.
 - **No production performance/load test** for the QR endpoint.

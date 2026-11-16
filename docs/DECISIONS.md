@@ -69,15 +69,20 @@ dependencies, test it byte-for-byte against independently published vectors, and
 use `qrcode` only to render a validated payload to PNG/SVG. Rendering can be
 swapped without touching validation, sessions or the POS.
 
-## ADR-011 — PromptPay settlement is manual by design
+## ADR-011 — PromptPay settlement is manual by default, provider-confirmed when connected
 **Date:** 2026-11-16 · **Status:** accepted
 
 No bank/PSP credentials exist, and neither QR creation, scanning nor expiry is
-proof of payment. Every dynamic QR creates a `pending` session. A staff member
-with `payments.confirm` must verify the exact amount; the system records the
-actor, time, optional slip reference and audit trail. Checkout locks the session
-and binds it to exactly one sale. A provider interface is reserved for a future
-signed webhook/slip/statement adapter. SMS/notification scraping and banking-app
+proof of payment. Every dynamic QR creates a `pending` session. By default a
+staff member with `payments.confirm` verifies the exact amount; the system
+records the actor, time, optional slip reference and audit trail. Checkout locks
+the session and binds it to exactly one sale.
+
+A generic signed webhook receiver is implemented so a contracted bank/PSP can
+auto-confirm: HMAC-SHA256, ±5-minute timestamp, event-id idempotency, exact
+amount/store/reference matching and `FOR UPDATE`. The POS polls pending sessions
+and updates automatically. The receiver is not a bank API and stays inactive
+until a provider is configured. SMS/notification scraping and banking-app
 automation are rejected.
 
 ## ADR-009 — SQL-first data access (`pg`), no ORM

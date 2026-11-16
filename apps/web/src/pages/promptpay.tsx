@@ -2,14 +2,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  Activity,
   BadgeCheck,
   CircleCheck,
   CircleX,
   Clock,
+  Copy,
   Download,
   ExternalLink,
+  KeyRound,
   Pencil,
   Printer,
+  Webhook,
   Plus,
   QrCode,
   RefreshCw,
@@ -26,6 +30,7 @@ import {
   identifierErrorMessage,
   identifierTypeLabel,
   promptPayApi,
+  type PaymentProviderEvent,
   type PromptPayAccount,
   type PromptPayListMeta,
   type PromptPaySession,
@@ -57,7 +62,7 @@ import {
   useToast,
 } from '../components/ui';
 
-type Tab = 'history' | 'accounts';
+type Tab = 'history' | 'accounts' | 'verify';
 
 interface AccountForm {
   identifierType: 'mobile' | 'national_id';
@@ -301,6 +306,12 @@ export function PromptPayPage() {
       count: accountRows.length,
     });
   }
+  if (can('promptpay.providers.manage')) {
+    tabs.push({
+      value: 'verify',
+      label: t('ตรวจรับอัตโนมัติ', 'Auto verification'),
+    });
+  }
 
   return (
     <PageBody>
@@ -482,7 +493,7 @@ export function PromptPayPage() {
             </>
           )}
         </Card>
-      ) : (
+      ) : tab === 'accounts' ? (
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line p-3">
             <div>
@@ -622,6 +633,8 @@ export function PromptPayPage() {
             </div>
           </div>
         </Card>
+      ) : (
+        <VerificationSettings />
       )}
 
       {/* Add / edit account */}
@@ -905,6 +918,422 @@ export function PromptPayPage() {
         )}
       </Modal>
     </PageBody>
+  );
+}
+
+function VerificationSettings() {
+  const { t, locale } = useLang();
+  const { money, dateTime } = useFormat();
+  const { can } = useAuth();
+  const toast = useToast();
+  const queryClient = useQueryClient();
+
+  const [form, setForm] = useState({
+    displayName: '',
+    autoConfirm: true,
+    isActive: false,
+  });
+  const [secret, setSecret] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [rotating, setRotating] = useState(false);
+  const [rotateConfirm, setRotateConfirm] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const provider = useQuery({
+    queryKey: ['promptpay-provider'],
+    queryFn: () => promptPayApi.getProvider(),
+    enabled: can('promptpay.providers.manage'),
+  });
+  const events = useQuery({
+    queryKey: ['promptpay-provider-events'],
+    queryFn: () => promptPayApi.listProviderEvents(),
+    enabled: can('promptpay.providers.manage'),
+  });
+
+  useEffect(() => {
+    const config = provider.data?.data;
+    if (config) {
+      setForm({
+        displayName: config.displayName,
+        autoConfirm: config.autoConfirm,
+        isActive: config.isActive,
+      });
+    }
+  }, [provider.data]);
+
+  const refresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['promptpay-provider'] }),
+      queryClient.invalidateQueries({ queryKey: ['promptpay-provider-events'] }),
+    ]);
+  };
+
+  const create = async () => {
+    setCreating(true);
+    try {
+      const result = await promptPayApi.createProvider({
+        displayName: form.displayName.trim() || 'Webhook provider',
+        autoConfirm: form.autoConfirm,
+        isActive: false,
+      });
+      setSecret(result.data.secret);
+      await refresh();
+      toast.success(
+        t('สร้างปลายทาง webhook แล้ว', 'Webhook endpoint created'),
+        t('คัดลอก secret เก็บไว้ ระบบจะแสดงเพียงครั้งเดียว', 'Copy the secret now; it is shown only once.'),
+      );
+    } catch (error) {
+      toast.error(t('สร้างไม่สำเร็จ', 'Could not create'), errorMessage(error, locale));
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await promptPayApi.updateProvider({
+        displayName: form.displayName.trim(),
+        autoConfirm: form.autoConfirm,
+        isActive: form.isActive,
+      });
+      await refresh();
+      toast.success(
+        t('บันทึกการตั้งค่าแล้ว', 'Settings saved'),
+        t('ระบบบันทึกลงฐานข้อมูลทันที', 'Saved to the database immediately.'),
+      );
+    } catch (error) {
+      toast.error(t('บันทึกไม่สำเร็จ', 'Could not save'), errorMessage(error, locale));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const rotate = async () => {
+    setRotating(true);
+    try {
+      const result = await promptPayApi.rotateProvider();
+      setSecret(result.data.secret);
+      setRotateConfirm(false);
+      await refresh();
+      toast.success(t('เปลี่ยน secret แล้ว', 'Secret rotated'));
+    } catch (error) {
+      toast.error(t('เปลี่ยน secret ไม่สำเร็จ', 'Could not rotate'), errorMessage(error, locale));
+    } finally {
+      setRotating(false);
+    }
+  };
+
+  const remove = async () => {
+    setDeleting(true);
+    try {
+      await promptPayApi.deleteProvider();
+      setDeleteConfirm(false);
+      setSecret(null);
+      await refresh();
+      toast.success(t('ลบการเชื่อมต่อแล้ว', 'Provider connection removed'));
+    } catch (error) {
+      toast.error(t('ลบไม่สำเร็จ', 'Could not remove'), errorMessage(error, locale));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const copy = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+      toast.success(t('คัดลอกแล้ว', 'Copied'));
+    } catch {
+      toast.error(t('คัดลอกไม่ได้', 'Could not copy'));
+    }
+  };
+
+  const config = provider.data?.data ?? null;
+  const webhookUrl = config ? `${window.location.origin}${config.webhookPath}` : '';
+
+  if (provider.isLoading) {
+    return (
+      <Card className="space-y-3 p-4">
+        <Skeleton className="h-24" />
+        <Skeleton className="h-40" />
+      </Card>
+    );
+  }
+
+  if (!config) {
+    return (
+      <Card>
+        <EmptyState
+          icon={<Webhook className="h-5 w-5" />}
+          title={t('ยังไม่ได้เชื่อมต่อการตรวจเงินเข้าอัตโนมัติ', 'Automatic settlement is not connected')}
+          description={t(
+            'ระบบสร้าง QR ได้โดยไม่ต้องมีธนาคาร แต่การรู้ว่าเงินเข้าจริงต้องมีผู้ให้บริการที่ส่ง webhook ที่ลงนามแล้ว การยืนยันด้วยพนักงานยังใช้ได้เสมอ',
+            'QR generation needs no bank. Knowing that money actually arrived needs a provider that sends a signed webhook. Manual staff confirmation always remains available.',
+          )}
+          action={
+            <Button variant="primary" loading={creating} onClick={() => void create()}>
+              {t('สร้างปลายทาง Webhook', 'Create webhook endpoint')}
+            </Button>
+          }
+        />
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[13.5px] font-semibold">{config.displayName}</p>
+              <Badge tone={config.isActive ? 'jade' : 'neutral'} dot={config.isActive}>
+                {config.isActive
+                  ? t('เปิดใช้งาน', 'Active')
+                  : t('ยังไม่เปิดใช้งาน', 'Inactive')}
+              </Badge>
+              <Badge tone={config.autoConfirm ? 'info' : 'neutral'}>
+                {config.autoConfirm
+                  ? t('ยืนยันอัตโนมัติ', 'Auto-confirm')
+                  : t('รับข้อมูลเท่านั้น', 'Observe only')}
+              </Badge>
+            </div>
+            <p className="mt-1 text-[11px] text-muted">
+              {t(
+                'เมื่อผู้ให้บริการส่งเหตุการณ์ที่ลงนามถูกต้อง ระบบจะเปลี่ยน QR เป็นชำระแล้วและแจ้ง POS ทันที',
+                'When a correctly signed provider event arrives, the session becomes paid and the POS updates immediately.',
+              )}
+            </p>
+          </div>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-info-soft text-info">
+            <Webhook className="h-5 w-5" />
+          </span>
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <Field label={t('ชื่อผู้ให้บริการ', 'Provider name')}>
+            <Input
+              value={form.displayName}
+              onChange={(event) => setForm((prev) => ({ ...prev, displayName: event.target.value }))}
+              maxLength={80}
+              placeholder="Bank / PSP webhook"
+            />
+          </Field>
+          <div className="grid gap-2">
+            <label className="flex items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2">
+              <span className="text-[12px] font-medium">{t('เปิดใช้งาน', 'Active')}</span>
+              <Switch
+                checked={form.isActive}
+                onChange={(value) => setForm((prev) => ({ ...prev, isActive: value }))}
+              />
+            </label>
+            <label className="flex items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2">
+              <span className="text-[12px] font-medium">{t('ยืนยันอัตโนมัติ', 'Auto-confirm')}</span>
+              <Switch
+                checked={form.autoConfirm}
+                onChange={(value) => setForm((prev) => ({ ...prev, autoConfirm: value }))}
+              />
+            </label>
+          </div>
+        </div>
+        <div className="mt-3 flex justify-end">
+          <Button variant="primary" loading={saving} onClick={() => void save()}>
+            {t('บันทึกการตั้งค่า', 'Save settings')}
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <div className="flex items-center gap-2">
+          <KeyRound className="h-4 w-4 text-faint" />
+          <p className="text-[12.5px] font-semibold">{t('ปลายทางและ secret', 'Endpoint and secret')}</p>
+        </div>
+        <div className="mt-2 space-y-2">
+          <div>
+            <p className="mb-1 text-[11px] font-medium">{t('Webhook URL', 'Webhook URL')}</p>
+            <div className="flex items-start gap-2">
+              <code className="min-w-0 flex-1 break-all rounded-lg border border-line bg-surface-2 px-3 py-2 font-mono text-[11px] leading-relaxed">
+                {webhookUrl}
+              </code>
+              <Button
+                variant="secondary"
+                leftIcon={copied ? <CircleCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                onClick={() => void copy(webhookUrl)}
+              >
+                {t('คัดลอก', 'Copy')}
+              </Button>
+            </div>
+          </div>
+          <p className="text-[10.5px] text-faint">
+            {t(
+              'ให้ผู้ให้บริการยิง POST พร้อม headers x-nexora-timestamp, x-nexora-signature และ x-nexora-event-id',
+              'The provider must POST with x-nexora-timestamp, x-nexora-signature and x-nexora-event-id headers.',
+            )}
+          </p>
+        </div>
+
+        {secret ? (
+          <div className="mt-3 rounded-lg border border-amber/30 bg-amber-soft/40 p-3">
+            <p className="text-[11.5px] font-medium text-amber">
+              {t('คัดลอก secret นี้เก็บไว้ทันที', 'Copy this secret now')}
+            </p>
+            <div className="mt-1.5 flex gap-2">
+              <Input value={secret} readOnly className="font-mono text-[11px]" />
+              <Button variant="secondary" onClick={() => void copy(secret)}>
+                {t('คัดลอก', 'Copy')}
+              </Button>
+            </div>
+            <p className="mt-1 text-[10px] text-faint">
+              {t('ระบบจะไม่แสดง secret นี้อีก', 'This secret will not be shown again.')}
+            </p>
+          </div>
+        ) : null}
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+          <p className="text-[10.5px] text-faint">
+            {config.lastEventAt
+              ? `${t('เหตุการณ์ล่าสุด', 'Last event')}: ${dateTime(config.lastEventAt)}`
+              : t('ยังไม่ได้รับเหตุการณ์', 'No events received yet')}
+          </p>
+          {rotateConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[10.5px] text-danger">
+                {t('secret เก่าจะใช้ไม่ได้ทันที', 'The old secret stops working immediately.')}
+              </span>
+              <Button size="sm" variant="ghost" onClick={() => setRotateConfirm(false)}>
+                {t('ยกเลิก', 'Cancel')}
+              </Button>
+              <Button size="sm" variant="danger" loading={rotating} onClick={() => void rotate()}>
+                {t('ยืนยันเปลี่ยน', 'Rotate')}
+              </Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="secondary" onClick={() => setRotateConfirm(true)}>
+              {t('เปลี่ยน secret', 'Rotate secret')}
+            </Button>
+          )}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-3">
+          {deleteConfirm ? (
+            <>
+              <span className="text-[10.5px] text-danger">
+                {t(
+                  'ลบการเชื่อมต่อและประวัติเหตุการณ์ทั้งหมด? การยืนยันด้วยพนักงานยังใช้ได้',
+                  'Remove the connection and its event history? Manual confirmation still works.',
+                )}
+              </span>
+              <Button size="sm" variant="ghost" onClick={() => setDeleteConfirm(false)}>
+                {t('ยกเลิก', 'Cancel')}
+              </Button>
+              <Button size="sm" variant="danger" loading={deleting} onClick={() => void remove()}>
+                {t('ยืนยันลบ', 'Remove')}
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-danger"
+              onClick={() => setDeleteConfirm(true)}
+            >
+              {t('ลบการเชื่อมต่อ', 'Remove connection')}
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <div className="flex items-center justify-between border-b border-line p-3">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4 text-faint" />
+            <p className="text-[12.5px] font-semibold">{t('เหตุการณ์ล่าสุด', 'Recent events')}</p>
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            loading={events.isFetching}
+            onClick={() => void events.refetch()}
+          >
+            {t('รีเฟรช', 'Refresh')}
+          </Button>
+        </div>
+        {(events.data?.data.length ?? 0) === 0 ? (
+          <p className="p-6 text-center text-[11.5px] text-faint">
+            {t('ยังไม่มีเหตุการณ์จากผู้ให้บริการ', 'No provider events yet')}
+          </p>
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <TH>{t('เวลา', 'Time')}</TH>
+                <TH>{t('เลขอ้างอิง', 'Reference')}</TH>
+                <TH className="text-right">{t('ยอด', 'Amount')}</TH>
+                <TH>{t('สถานะ', 'Status')}</TH>
+                <TH>{t('เหตุผล', 'Reason')}</TH>
+              </tr>
+            </thead>
+            <tbody>
+              {(events.data?.data ?? []).map((event: PaymentProviderEvent) => (
+                <TR key={event.id}>
+                  <TD className="whitespace-nowrap text-[11px] text-muted">
+                    {dateTime(event.createdAt)}
+                  </TD>
+                  <TD className="num text-[11.5px]">{event.reference || '—'}</TD>
+                  <TD className="num text-right text-[11.5px]">
+                    {event.amountSatang == null ? '—' : money(event.amountSatang)}
+                  </TD>
+                  <TD>
+                    <Badge
+                      tone={
+                        event.status === 'processed'
+                          ? 'jade'
+                          : event.status === 'rejected'
+                            ? 'danger'
+                            : event.status === 'already_paid'
+                              ? 'info'
+                              : 'neutral'
+                      }
+                    >
+                      {event.status}
+                    </Badge>
+                  </TD>
+                  <TD className="text-[10.5px] text-muted">{event.reason || '—'}</TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </Card>
+
+      <Card className="p-4">
+        <p className="text-[12px] font-semibold">{t('รูปแบบเหตุการณ์', 'Event contract')}</p>
+        <pre className="mt-2 overflow-x-auto rounded-lg bg-surface-2 p-3 text-[10.5px] leading-relaxed text-muted">
+{`POST ${webhookUrl}
+x-nexora-event-id: evt_123
+x-nexora-timestamp: 1760000000
+x-nexora-signature: sha256=<hex hmac>
+
+{
+  "eventId": "evt_123",
+  "type": "payment.received",
+  "reference": "PP-04F8A1755AE3",
+  "amountSatang": 12900,
+  "currency": "THB",
+  "transactionRef": "BANK-TXN-001"
+}`}
+        </pre>
+        <p className="mt-2 text-[10.5px] text-faint">
+          HMAC-SHA256 over <span className="font-mono">{`"<timestamp>.<raw body>"`}</span>. Timestamp
+          must be within 5 minutes; duplicate event ids are ignored.
+        </p>
+      </Card>
+    </div>
   );
 }
 

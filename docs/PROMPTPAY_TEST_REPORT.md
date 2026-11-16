@@ -10,9 +10,9 @@ Environment: Windows, Node 26, PostgreSQL 18, Chrome, real `nexora_dev` /
 | Suite | Command | Result |
 | --- | --- | --- |
 | PromptPay engine unit tests | `npx vitest run packages/promptpay/src/payload.test.ts` | **37 passed** |
-| All unit/integration tests | `npm test` | **82 passed** (6 files) |
-| API PromptPay integration | `npx vitest run apps/api/test/promptpay.test.ts` | **15 passed** |
-| End-to-end (Chrome) | `npx playwright test` | **20 passed (51.6s)** |
+| All unit/integration tests | `npm test` | **86 passed** (6 files) |
+| API PromptPay integration | `npx vitest run apps/api/test/promptpay.test.ts` | **19 passed** |
+| End-to-end (Chrome) | `npx playwright test` | **21 passed** |
 | TypeScript | `npm run typecheck` | Clean |
 | ESLint | `npm run lint` | Clean |
 | Production build | `npm run build` | Passed (recorded below) |
@@ -65,7 +65,7 @@ Vectors are from `ultramcu/go-promptpay` v0.1.0 `encode_test.go` (MIT), listed i
 - Unsafe reference labels (space/hash) are rejected.
 - Every payload decodes with `crcValid: true`.
 
-## 3. API integration tests (15)
+## 3. API integration tests (19)
 
 File: `apps/api/test/promptpay.test.ts` (real PostgreSQL, fresh schema, cookies).
 
@@ -107,7 +107,21 @@ File: `apps/api/test/promptpay.test.ts` (real PostgreSQL, fresh schema, cookies)
 - POS bootstrap includes the `promptpay` tender; history filters return only
   paid rows with a positive paid summary.
 
-## 4. End-to-end tests (20)
+### Signed provider webhook
+
+- Create provider → `201`, public id `ppwh_…`, secret `whsec_…` returned once;
+  GET never returns the secret.
+- Correct HMAC `sha256(timestamp + "." + rawBody)` → event `processed`; session
+  becomes paid with `verificationMethod: provider_webhook`, no staff verifier,
+  `autoConfirmed: true`.
+- Replaying the same event id → `processed` again but exactly one transaction.
+- Forged signature and timestamp older than 5 minutes → `401`.
+- Signed event with a wrong amount → `rejected/amount_mismatch`, session stays
+  pending.
+- `autoConfirm: false` → `ignored/auto_confirm_disabled`, session stays pending
+  and verification mode reports manual.
+
+## 4. End-to-end tests (21)
 
 ### Existing journeys (17)
 
@@ -116,7 +130,7 @@ offline queue/sync, customer display, 1024×768 layout, loyalty redemption,
 platform console, iPad touch/keypad/favourites/cash count/scanner, scan-to-count
 and scan-to-receive — all still pass.
 
-### New PromptPay journeys (3)
+### New PromptPay journeys (4)
 
 1. **Add account UI** — create via the settings dialog, see the masked value,
    assert the full identifier is absent from the page body, delete via API.
@@ -126,6 +140,9 @@ and scan-to-receive — all still pass.
    reference and `ชำระแล้ว`.
 3. **No premature checkout** — create a QR, close the dialog, assert the checkout
    button is disabled; reopen and assert the pending QR is reused; cancel it.
+4. **Auto detection** — active provider + signed `payment.received` webhook →
+   the POS dialog (polling every 4s) switches to “payment received” without
+   staff action → checkout completes → provider event log shows `processed`.
 
 ## 5. Manual UI verification
 
@@ -139,6 +156,10 @@ Captured under `test-results/visual/`:
 - `promptpay-history.png` — paid and pending rows, verifier and sale link.
 - `promptpay-static-ipad.png` — reusable no-amount QR with download/print and
   the “not proof of payment” warning.
+- `promptpay-provider.png` — provider settings, webhook URL, secret rotation,
+  delete and event log.
+- `pos-promptpay-auto-ipad.png` — live “waiting for automatic confirmation”
+  banner while the QR is pending.
 
 Live browser flow performed:
 
@@ -153,9 +174,9 @@ The QR was not scanned with a bank application; see the limitation below.
 
 `npm run build` passes for API and web. Final web output:
 
-- main entry `375.12 kB` (`109.16 kB` gzip)
-- POS chunk `94.31 kB` (`25.36 kB` gzip)
-- PromptPay page chunk `30.74 kB` (`8.63 kB` gzip)
+- main entry `375.42 kB` (`109.22 kB` gzip)
+- POS chunk `96.30 kB` (`25.87 kB` gzip)
+- PromptPay page chunk `43.39 kB` (`11.18 kB` gzip)
 
 The PromptPay page is lazy-loaded; the POS dialog is part of the POS chunk.
 
@@ -164,7 +185,9 @@ The PromptPay page is lazy-loaded; the POS dialog is part of the POS chunk.
 - No real Thai mobile banking application scan or payment.
 - No bank-by-bank compatibility, certification or merchant onboarding.
 - No real thermal printer, scanner, cash drawer or EDC.
-- No licensed slip-verification provider or settlement webhook.
+- No real bank/PSP webhook was available. The signed generic webhook receiver is
+  exercised with synthetic signed events in API and E2E tests; a real provider
+  contract and bank-side onboarding remain required.
 - No load test, soak test, external penetration test, or production PITR.
 - No SMS/notification-based verification (intentionally excluded).
 

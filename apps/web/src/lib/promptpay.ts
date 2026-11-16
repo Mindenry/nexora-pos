@@ -48,6 +48,11 @@ export interface PromptPaySession {
     metadata: Record<string, unknown>;
   } | null;
   qr: { pngDataUrl: string; svg: string; payload?: string } | null;
+  verificationMode: {
+    mode: 'manual' | 'automatic';
+    autoConfirm: boolean;
+    displayName: string | null;
+  };
   audit: Array<{
     id: string;
     action: string;
@@ -85,6 +90,29 @@ export interface PromptPayListMeta {
     paidSatang: number;
     pendingCount: number;
   };
+}
+
+export interface PaymentProviderConfig {
+  id: string;
+  provider: string;
+  displayName: string;
+  publicId: string;
+  webhookPath: string;
+  isActive: boolean;
+  autoConfirm: boolean;
+  lastEventAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentProviderEvent {
+  id: string;
+  eventId: string;
+  status: 'processed' | 'already_paid' | 'ignored' | 'rejected';
+  reason: string;
+  amountSatang: number | null;
+  reference: string;
+  createdAt: string;
 }
 
 export interface PromptPaySessionCreateBody {
@@ -135,6 +163,20 @@ export const promptPayApi = {
       svg: string;
       payload?: string;
     }>(`/promptpay/accounts/${id}/static-qr`),
+  getProvider: () => api<PaymentProviderConfig | null>('/promptpay/provider'),
+  createProvider: (body: { displayName?: string; autoConfirm?: boolean; isActive?: boolean }) =>
+    api<{ config: PaymentProviderConfig; secret: string }>('/promptpay/provider', {
+      method: 'POST',
+      body,
+    }),
+  updateProvider: (body: { displayName?: string; autoConfirm?: boolean; isActive?: boolean }) =>
+    api<PaymentProviderConfig>('/promptpay/provider', { method: 'PATCH', body }),
+  rotateProvider: () =>
+    api<{ config: PaymentProviderConfig; secret: string }>('/promptpay/provider/rotate', {
+      method: 'POST',
+    }),
+  deleteProvider: () => api<null>('/promptpay/provider', { method: 'DELETE' }),
+  listProviderEvents: () => api<PaymentProviderEvent[]>('/promptpay/provider/events?limit=20'),
   listSessions: (params: {
     page?: number;
     pageSize?: number;

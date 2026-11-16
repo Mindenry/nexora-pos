@@ -1,3 +1,4 @@
+import { createHmac, randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 
 const WEB = { 'x-nexora-client': 'web', origin: 'http://localhost:5173' };
@@ -107,6 +108,87 @@ test('rings a PromptPay sale after staff confirms receipt', async ({ page }) => 
   await expect(historyRow).toBeVisible();
   await expect(historyRow).toContainText('ชำระแล้ว');
 
+  await deleteAccount(page, accountId);
+});
+
+test('auto-detects a signed provider payment and completes the sale', async ({ page }) => {
+  await login(page);
+  const accountId = await createAccount(page, 'E2E Auto PromptPay');
+  const provider = await page.request.post('/api/promptpay/provider', {
+    headers: WEB,
+    data: { displayName: 'E2E Bank Webhook', autoConfirm: true, isActive: true },
+  });
+  expect(provider.status(), await provider.text()).toBe(201);
+  const providerBody = await provider.json();
+  const publicId = providerBody.data.config.publicId as string;
+  const secret = providerBody.data.secret as string;
+
+  await openTerminal(page);
+  await page.locator('button.group').first().click();
+  await page.getByRole('button', { name: /ชำระเงิน/ }).last().click();
+  await page.getByRole('button', { name: 'พร้อมเพย์', exact: true }).last().click();
+  await page.getByRole('button', { name: 'สร้าง QR', exact: true }).click();
+
+  const dialog = page.getByRole('dialog').filter({ hasText: 'รับชำระด้วยพร้อมเพย์' });
+  await expect(dialog.getByRole('img', { name: 'QR พร้อมเพย์' })).toBeVisible();
+  await expect(dialog.getByText('ระบบกำลังตรวจเงินเข้าอัตโนมัติผ่าน')).toBeVisible();
+  const reference = (await dialog.innerText()).match(/PP-[0-9A-F]{12}/)?.[0] ?? '';
+  expect(reference).toMatch(/^PP-[0-9A-F]{12}$/);
+
+  const storeId = await page.evaluate(() => localStorage.getItem('nexora.store_id'));
+  const pendingList = await page.request.get(
+    '/api/promptpay/sessions?status=pending&pageSize=10',
+    { headers: { ...WEB, ...(storeId ? { 'x-store-id': storeId } : {}) } },
+  );
+  const pending = (await pendingList.json()).data as Array<{
+    reference: string;
+    amountSatang: number;
+  }>;
+  const session = pending.find((row) => row.reference === reference);
+  expect(session, JSON.stringify(pending)).toBeTruthy();
+
+  const eventId = `evt_${randomUUID()}`;
+  const body = JSON.stringify({
+    eventId,
+    type: 'payment.received',
+    reference,
+    amountSatang: session!.amountSatang,
+    currency: 'THB',
+    transactionRef: 'E2E-BANK-TXN-001',
+  });
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+  const webhook = await page.request.post(
+    `http://localhost:5173/api/payments/webhook/promptpay/${publicId}`,
+    {
+      headers: {
+        'content-type': 'application/json',
+        'x-nexora-event-id': eventId,
+        'x-nexora-timestamp': timestamp,
+        'x-nexora-signature': `sha256=${signature}`,
+      },
+      data: Buffer.from(body, 'utf8'),
+    },
+  );
+  expect(webhook.status(), await webhook.text()).toBe(200);
+
+  await expect(dialog.getByText('ได้รับเงินเรียบร้อยแล้ว')).toBeVisible({ timeout: 15_000 });
+  await dialog.getByRole('button', { name: 'เสร็จสิ้น' }).click();
+  await expect(
+    page.getByRole('dialog').filter({ hasText: 'ชำระเงิน' }).getByText('ยืนยันรับเงินแล้ว'),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'ยืนยันการชำระเงิน' }).click();
+  await expect(page.getByRole('heading', { name: 'ชำระเงินสำเร็จ' })).toBeVisible({
+    timeout: 20_000,
+  });
+  await page.getByRole('button', { name: 'บิลใหม่' }).click();
+
+  await page.goto('/promptpay');
+  await page.getByRole('tab', { name: /ตรวจรับอัตโนมัติ/ }).click();
+  await expect(page.getByText('E2E Bank Webhook').first()).toBeVisible();
+  await expect(page.getByText('processed').first()).toBeVisible({ timeout: 15_000 });
+
+  await page.request.delete('/api/promptpay/provider', { headers: WEB });
   await deleteAccount(page, accountId);
 });
 

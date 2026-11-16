@@ -153,7 +153,9 @@ automatically without a merchant account or bank API. Findings by category:
 
 - Licensed slip-verification services and payment gateways can verify a slip or
   receive a webhook. They require onboarding, contracts, fees and usually an API
-  key. They are not a "no signup" solution.
+  key. They are not a "no signup" solution. The project implements the receiving
+  side of this model (signed webhook), but the merchant still needs the provider
+  contract.
 - ITMX documents a standard transaction-verification API (S8), but it is an
   interbank channel for participants, not an open public endpoint.
 
@@ -183,8 +185,11 @@ channel. The production design therefore:
 2. Requires an authorised staff member to confirm the exact amount.
 3. Records verifier, time, optional slip reference and a full audit trail.
 4. Binds the verified session to exactly one sale at checkout.
-5. Exposes a provider interface so a webhook/slip/statement adapter can be added
-   later without changing the POS.
+5. Ships a **signed generic webhook adapter** (HMAC, replay window, event
+   idempotency, auto-confirm) so a contracted bank/PSP can update the POS
+   automatically. No real provider is connected in this environment.
+6. Exposes a provider interface so slip/statement adapters can be added later
+   without changing the POS.
 
 ## 6. Uncertainties and explicit limitations
 

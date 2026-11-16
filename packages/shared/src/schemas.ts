@@ -210,6 +210,13 @@ export const promptpaySessionQuerySchema = listQuerySchema.extend({
   to: dateStringSchema.optional(),
 });
 
+export const paymentProviderUpdateSchema = z.object({
+  displayName: z.string().trim().min(1).max(80).optional(),
+  autoConfirm: z.boolean().optional(),
+  isActive: z.boolean().optional(),
+});
+export type PaymentProviderUpdate = z.infer<typeof paymentProviderUpdateSchema>;
+
 // ── Shifts & cash ───────────────────────────────────────────────────────────
 export const openShiftSchema = z.object({
   openingCashSatang: moneySchema,

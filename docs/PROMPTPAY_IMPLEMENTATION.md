@@ -17,9 +17,10 @@ apps/api
   ├─ modules/promptpay.ts             HTTP boundary, Zod, permissions
   ├─ services/promptpay.ts            accounts, sessions, state machine, audit
   ├─ services/promptpay-crypto.ts     AES-256-GCM + HMAC
+  ├─ services/payment-providers.ts    provider config, HMAC webhook, auto-confirm
   ├─ services/pos-pricing.ts          authoritative cart pricing (shared with checkout)
   ├─ services/checkout.ts             binds a verified session to exactly one sale
-  ├─ services/payment-verification.ts provider interface for future automation
+  ├─ services/payment-verification.ts provider interface for future adapters
   └─ services/refunds.ts              marks sessions/transactions refunded
 
 packages/promptpay (zero runtime dependencies)
@@ -31,7 +32,8 @@ packages/promptpay (zero runtime dependencies)
 packages/db/migrations
   ├─ 0009_promptpay.sql               tables, indexes, RLS, permissions
   ├─ 0010_promptpay_rls_defaults.sql  tenant-aware tender/grants
-  └─ 0011_promptpay_relabel_generic_qr.sql
+  ├─ 0011_promptpay_relabel_generic_qr.sql
+  └─ 0012_payment_webhooks.sql        provider config + webhook event log
 ```
 
 Layer mapping from the requirement:
@@ -89,9 +91,23 @@ replaced and sale-linked events. Actor and metadata only; no PII.
 The existing sale payment row points at the verified session. A partial unique
 index prevents one session being used by two payments.
 
-### 2.6 RLS
+### 2.6 `payment_provider_configs` and `payment_webhook_events`
 
-All four new tables have `ENABLE`/`FORCE ROW LEVEL SECURITY` and the same
+`payment_provider_configs` stores one tenant-wide signed webhook configuration:
+unguessable `public_id`, encrypted HMAC secret, display name, active and
+auto-confirm flags, last event time. Only owner/manager can read or change it.
+
+`payment_webhook_events` is an idempotency and audit log keyed by
+`(config_id, event_id)` with status `processed`, `already_paid`, `ignored` or
+`rejected`, reason, amount, reference and payload hash. Secrets, raw payloads and
+PII are not stored in the event log.
+
+`payment_transactions.verified_by` is nullable only for provider-confirmed
+transactions; manual confirmations still require a staff user.
+
+### 2.7 RLS
+
+All new tables have `ENABLE`/`FORCE ROW LEVEL SECURITY` and the same
 tenant-isolation policy as the rest of the product.
 
 ## 3. State machine
@@ -135,11 +151,15 @@ Rules:
 5. The API re-prices from the database, picks the default/selected active
    account, creates or reuses a pending session, and returns a QR image.
 6. The customer scans and pays in their banking app.
-7. Staff checks the incoming amount in the bank app and presses
-   **ยืนยันรับชำระเงิน**; they must tick “I verified the money arrived” and may
-   enter the slip reference/note.
+7. **Manual mode (default):** staff checks the incoming amount in the bank app
+   and presses **ยืนยันรับชำระเงิน**; they must tick “I verified the money
+   arrived” and may enter the slip reference/note.
+   **Automatic mode:** if an active provider with auto-confirm is configured,
+   the dialog shows a live banner and polls the session every 4 seconds. A
+   correctly signed `payment.received` webhook marks it paid without staff
+   action; the POS switches to “payment received” automatically.
 8. The API locks the session, checks the amount, inserts one transaction, marks
-   the session paid and audits the actor.
+   the session paid and audits the actor (or the provider event).
 9. The POS row shows the reference and enables **ยืนยันการชำระเงิน**.
 10. Checkout re-prices the cart, verifies the session is paid, matches the
     amount, has not been used, and belongs to the same operation, then inserts
@@ -182,31 +202,41 @@ Static no-amount QR is available from each account card
 - Back up the encryption key separately from database backups.
 - Monitor sessions stuck in `pending`, overrides and paid-unlinked sessions.
 
-## 8. Extending to automatic verification
+## 8. Automatic verification provider
 
-`apps/api/src/services/payment-verification.ts` defines:
+The generic signed webhook is implemented:
 
-```ts
-interface PaymentVerificationProvider {
-  code: string;
-  automatic: boolean;
-  verify(request: VerificationRequest): Promise<VerificationOutcome>;
-}
-```
+1. Owner/manager creates a provider in **พร้อมเพย์ → ตรวจรับอัตโนมัติ**; the
+   system generates an unguessable endpoint id and an HMAC secret shown once.
+2. The provider sends `payment.received` with `x-nexora-timestamp`,
+   `x-nexora-signature` and `x-nexora-event-id`.
+3. The receiver verifies the HMAC over `${timestamp}.${rawBody}`, rejects
+   timestamps older than 5 minutes, and requires the header event id to match
+   the body.
+4. Inside a tenant transaction it inserts the event id idempotently, locks the
+   session, matches reference/store/amount, and requires status
+   `pending` or `expired`.
+5. With auto-confirm enabled it inserts one `payment_transactions` row
+   (`provider_webhook`, no staff verifier), marks the session paid, writes an
+   `auto_confirmed` timeline entry and an `audit_logs` row.
+6. The POS polls the session every 4 seconds, updates the dialog and enables
+   checkout. A manual fallback remains available.
 
-A webhook or statement-import adapter must:
+This is **not** a bank API. A real provider must be contracted and configured to
+send these events. If no provider is configured, the system stays in manual mode.
+`payment-verification.ts` remains the interface for additional adapters
+(slip verification, statement import).
 
-1. Verify the provider signature/timestamp and reject replays.
-2. Match tenant, store, amount and session/reference.
-3. Run the same `FOR UPDATE` transaction and insert exactly one
-   `payment_transactions` row with `verification_method` set.
-4. Record the provider reference and raw status (redacted) in metadata.
-5. Never mark a sale paid directly; the checkout binding remains mandatory.
+A future adapter must keep the same invariants: signed requests, replay
+protection, idempotency, one transaction per session, and no direct sale-paid
+write.
 
 ## 9. Limitations
 
-- Manual verification only; no provider webhook is configured.
-- No key rotation tooling, HSM or KMS integration.
+- Manual verification is the default. The signed webhook adapter works, but no
+  real bank/PSP provider is connected or certified in this environment.
+- No key rotation tooling for the encryption key, HSM or KMS integration
+  (webhook HMAC secrets can be rotated from the UI).
 - No bank-by-bank device certification.
 - QR expiry is enforced by the POS, not by the QR payload.
 - No SMS/notification scraping (intentionally).

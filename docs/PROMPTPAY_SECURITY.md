@@ -131,6 +131,24 @@ Reviewed: 2026-11-16
 - Audit metadata contains amount, masked account, display name, reference and
   reason; never the full identifier or raw payload.
 
+### 2.10 Provider webhook
+
+- Endpoint id is a random 96-bit public identifier; the signing secret is 192-bit
+  and stored AES-GCM encrypted.
+- Signature is HMAC-SHA256 over `${timestamp}.${rawBody}` using the exact raw
+  request bytes captured before JSON parsing.
+- Timestamps must be within ±300 seconds; comparison uses constant-time equality.
+- `x-nexora-event-id` must equal the body event id.
+- `(config_id, event_id)` is unique, so replaying the same event cannot create a
+  second transaction. A different event for an already-paid session returns
+  `already_paid`.
+- Tenant, store (when configured), reference and exact amount are checked.
+- The webhook cannot mark a sale paid directly; it only marks the session paid,
+  and checkout still binds one session to one sale.
+- Raw payloads are not logged; the event log stores a SHA-256 hash, amount,
+  reference and outcome.
+- Secrets can be rotated from the UI; the old secret stops working immediately.
+
 ## 3. Residual risks
 
 | Risk | Severity | Notes |
@@ -139,7 +157,9 @@ Reviewed: 2026-11-16
 | Colluding staff and customer | High | Same limitation; provider webhook or statement reconciliation is the real control |
 | Malware on the POS device | High | Can alter the displayed amount or steal sessions; use device hardening, screen lock, OS updates |
 | Key compromise | Critical | All proxies and payloads decryptable; rotate keys and re-encrypt |
-| No automatic provider verification | High | Manual verification is the honest v1 boundary |
+| No contracted provider; webhook unconnected | High | The signed adapter is implemented and tested, but real settlement still depends on a bank/PSP contract |
+| Webhook secret leak | High | Rotate the secret immediately; the event log and audit show usage |
+| Provider sends a false/duplicate event | Medium | HMAC, amount/store/reference matching, one transaction per session, event id idempotency, audit |
 | No external penetration test | Medium | Required before production |
 | No HSM/KMS integration | Medium | Keys live in process memory; use a managed secret store/KMS |
 | Print helper iframe | Low | Only static escaped HTML and a server-generated data URL are written |
@@ -157,6 +177,9 @@ Reviewed: 2026-11-16
 6. A payload whose hash does not match is never re-rendered.
 7. Every account and session action is tenant-scoped by both application code
    and RLS.
+8. No provider event changes a session without a valid HMAC, a fresh timestamp,
+   a matching event id and an exact amount/reference.
+9. Webhook replay never creates a second payment transaction.
 
 ## 5. Pre-production checklist
 

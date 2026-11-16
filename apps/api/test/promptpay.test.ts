@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import pg from 'pg';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -470,6 +470,185 @@ describe('PromptPay sessions and manual verification', () => {
       .set('x-store-id', otherStoreId)
       .get(`/api/promptpay/sessions/${session.id}`);
     expect(response.status).toBe(404);
+  });
+});
+
+describe('signed provider webhook', () => {
+  let publicId = '';
+  let secret = '';
+
+  it('creates a provider config and reveals the secret only once', async () => {
+    const created = await withStore(agent, storeId).post('/api/promptpay/provider').send({
+      displayName: 'Test bank webhook',
+      autoConfirm: true,
+      isActive: true,
+    });
+    expect(created.status, JSON.stringify(created.body)).toBe(201);
+    publicId = created.body.data.config.publicId;
+    secret = created.body.data.secret;
+    expect(publicId).toMatch(/^ppwh_[0-9a-f]{24}$/);
+    expect(secret).toMatch(/^whsec_[0-9a-f]{48}$/);
+    expect(JSON.stringify(created.body.data.config)).not.toContain(secret);
+
+    const fetched = await withStore(agent, storeId).get('/api/promptpay/provider');
+    expect(fetched.status).toBe(200);
+    expect(fetched.body.data.publicId).toBe(publicId);
+    expect(JSON.stringify(fetched.body)).not.toContain(secret);
+  });
+
+  it('auto-confirms a pending QR from a signed payment event', async () => {
+    const session = await createSession(agent, randomUUID());
+    const eventId = `evt_${randomUUID()}`;
+    const body = JSON.stringify({
+      eventId,
+      type: 'payment.received',
+      reference: session.reference,
+      amountSatang: session.amountSatang,
+      currency: 'THB',
+      transactionRef: 'BANK-TXN-001',
+    });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+
+    const webhook = await request(app)
+      .post(`/api/payments/webhook/promptpay/${publicId}`)
+      .set('content-type', 'application/json')
+      .set('x-nexora-event-id', eventId)
+      .set('x-nexora-timestamp', timestamp)
+      .set('x-nexora-signature', `sha256=${signature}`)
+      .send(body);
+    expect(webhook.status, JSON.stringify(webhook.body)).toBe(200);
+    expect(webhook.body.data.status).toBe('processed');
+
+    const fetched = await withStore(agent, storeId).get(
+      `/api/promptpay/sessions/${session.id}`,
+    );
+    expect(fetched.body.data.status).toBe('paid');
+    expect(fetched.body.data.verification.verificationMethod).toBe('provider_webhook');
+    expect(fetched.body.data.verifiedBy).toBeNull();
+    expect(fetched.body.data.verification.metadata.autoConfirmed).toBe(true);
+    expect(fetched.body.data.verification.metadata.eventId).toBe(eventId);
+
+    const events = await withStore(agent, storeId).get('/api/promptpay/provider/events');
+    expect(events.status).toBe(200);
+    expect(events.body.data.some((row: { eventId: string }) => row.eventId === eventId)).toBe(true);
+
+    const duplicate = await request(app)
+      .post(`/api/payments/webhook/promptpay/${publicId}`)
+      .set('content-type', 'application/json')
+      .set('x-nexora-event-id', eventId)
+      .set('x-nexora-timestamp', timestamp)
+      .set('x-nexora-signature', `sha256=${signature}`)
+      .send(body);
+    expect(duplicate.status).toBe(200);
+    expect(duplicate.body.data.status).toBe('processed');
+    const transactions = await db.withTenant(tenantId, (client) =>
+      client.query<{ count: number }>(
+        'SELECT count(*)::int AS count FROM payment_transactions WHERE payment_session_id=$1',
+        [session.id],
+      ),
+    );
+    expect(transactions.rows[0]!.count).toBe(1);
+  });
+
+  it('rejects a forged signature, stale timestamp and amount mismatch', async () => {
+    const session = await createSession(agent, randomUUID());
+    const eventId = `evt_${randomUUID()}`;
+    const body = JSON.stringify({
+      eventId,
+      type: 'payment.received',
+      reference: session.reference,
+      amountSatang: session.amountSatang,
+      currency: 'THB',
+    });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+
+    const forged = await request(app)
+      .post(`/api/payments/webhook/promptpay/${publicId}`)
+      .set('content-type', 'application/json')
+      .set('x-nexora-event-id', eventId)
+      .set('x-nexora-timestamp', timestamp)
+      .set('x-nexora-signature', `sha256=${'0'.repeat(64)}`)
+      .send(body);
+    expect(forged.status).toBe(401);
+
+    const staleTimestamp = String(Math.floor(Date.now() / 1000) - 3600);
+    const staleSignature = createHmac('sha256', secret)
+      .update(`${staleTimestamp}.${body}`)
+      .digest('hex');
+    const stale = await request(app)
+      .post(`/api/payments/webhook/promptpay/${publicId}`)
+      .set('content-type', 'application/json')
+      .set('x-nexora-event-id', eventId)
+      .set('x-nexora-timestamp', staleTimestamp)
+      .set('x-nexora-signature', `sha256=${staleSignature}`)
+      .send(body);
+    expect(stale.status).toBe(401);
+
+    const wrongBody = JSON.stringify({
+      eventId: `evt_${randomUUID()}`,
+      type: 'payment.received',
+      reference: session.reference,
+      amountSatang: session.amountSatang - 1,
+      currency: 'THB',
+    });
+    const wrongSignature = createHmac('sha256', secret)
+      .update(`${timestamp}.${wrongBody}`)
+      .digest('hex');
+    const mismatch = await request(app)
+      .post(`/api/payments/webhook/promptpay/${publicId}`)
+      .set('content-type', 'application/json')
+      .set('x-nexora-event-id', JSON.parse(wrongBody).eventId)
+      .set('x-nexora-timestamp', timestamp)
+      .set('x-nexora-signature', `sha256=${wrongSignature}`)
+      .send(wrongBody);
+    expect(mismatch.status).toBe(200);
+    expect(mismatch.body.data.status).toBe('rejected');
+    expect(mismatch.body.data.reason).toBe('amount_mismatch');
+
+    const fetched = await withStore(agent, storeId).get(
+      `/api/promptpay/sessions/${session.id}`,
+    );
+    expect(fetched.body.data.status).toBe('pending');
+  });
+
+  it('does not confirm when automatic confirmation is disabled', async () => {
+    const disabled = await withStore(agent, storeId)
+      .patch('/api/promptpay/provider')
+      .send({ autoConfirm: false });
+    expect(disabled.status).toBe(200);
+
+    const session = await createSession(agent, randomUUID());
+    const eventId = `evt_${randomUUID()}`;
+    const body = JSON.stringify({
+      eventId,
+      type: 'payment.received',
+      reference: session.reference,
+      amountSatang: session.amountSatang,
+      currency: 'THB',
+    });
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+    const webhook = await request(app)
+      .post(`/api/payments/webhook/promptpay/${publicId}`)
+      .set('content-type', 'application/json')
+      .set('x-nexora-event-id', eventId)
+      .set('x-nexora-timestamp', timestamp)
+      .set('x-nexora-signature', `sha256=${signature}`)
+      .send(body);
+    expect(webhook.status).toBe(200);
+    expect(webhook.body.data.status).toBe('ignored');
+    expect(webhook.body.data.reason).toBe('auto_confirm_disabled');
+
+    const fetched = await withStore(agent, storeId).get(
+      `/api/promptpay/sessions/${session.id}`,
+    );
+    expect(fetched.body.data.status).toBe('pending');
+    expect(fetched.body.data.verificationMode.mode).toBe('manual');
+
+    await withStore(agent, storeId)
+      .patch('/api/promptpay/provider')
+      .send({ autoConfirm: true });
   });
 });
 

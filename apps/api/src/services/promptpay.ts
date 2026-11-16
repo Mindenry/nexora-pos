@@ -17,6 +17,7 @@ import {
 } from '@nexora/promptpay';
 import type { RequestContext } from '../types';
 import { writeAudit } from './audit';
+import { getProviderVerificationMode } from './payment-providers';
 import { pricePosCart } from './pos-pricing';
 import {
   decryptSecret,
@@ -71,6 +72,11 @@ export interface PromptPaySessionDTO {
     metadata: Record<string, unknown>;
   } | null;
   qr: { pngDataUrl: string; svg: string; payload?: string } | null;
+  verificationMode: {
+    mode: 'manual' | 'automatic';
+    autoConfirm: boolean;
+    displayName: string | null;
+  };
   audit: Array<{
     id: string;
     action: string;
@@ -645,6 +651,7 @@ async function sessionDto(
     qr = { ...rendered, ...(options.includePayload ? { payload } : {}) };
   }
 
+  const verificationMode = await getProviderVerificationMode(client, row.tenant_id);
   const t = transaction.rows[0];
   return {
     id: row.id,
@@ -674,6 +681,7 @@ async function sessionDto(
         }
       : null,
     qr,
+    verificationMode,
     audit: audit.rows.map((entry) => ({
       id: entry.id,
       action: entry.action,

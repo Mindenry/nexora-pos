@@ -9,12 +9,12 @@ runs were fixed before the final pass; this file records the final evidence.
 | --- | --- | --- |
 | TypeScript | `npm run typecheck` | ✅ all four workspaces, 0 errors |
 | ESLint | `npm run lint` | ✅ 0 errors, 0 warnings |
-| Production build | `npm run build` | ✅ API bundle + code-split SPA; main JS 375 kB (109 kB gzip), POS 94 kB, PromptPay page 31 kB |
-| Migration | `npm run db:migrate` | ✅ 11 migrations applied (through `0011_promptpay_relabel_generic_qr.sql`), checksums verified |
+| Production build | `npm run build` | ✅ API bundle + code-split SPA; main JS 375 kB (109 kB gzip), POS 96 kB, PromptPay page 43 kB |
+| Migration | `npm run db:migrate` | ✅ 12 migrations applied (through `0012_payment_webhooks.sql`), checksums verified |
 
 ## Unit & integration
 
-`npm test` → **6 files, 82 tests passed**:
+`npm test` → **6 files, 86 tests passed**:
 
 - Integer money half-up, basis points, VAT from gross/net, largest-remainder
   allocation (including zero-weight totals).
@@ -66,11 +66,14 @@ runs were fixed before the final pass; this file records the final evidence.
   - checkout binds one verified session to one sale, replay-safe, reuse blocked,
     unpaid checkout blocked;
   - cancel, lazy expiry, audited expiry override, cross-tenant 404;
-  - POS tender availability and paid history summary.
+  - POS tender availability and paid history summary;
+  - signed provider webhook: secret shown once, HMAC verification, stale
+    timestamp rejection, amount mismatch ignored, duplicate event idempotent,
+    auto-confirm with no staff actor, auto-confirm disabled respected.
 
 ## End-to-end (real Chrome via Playwright)
 
-`npx playwright test` → **20 passed (52s)**:
+`npx playwright test` → **21 passed**:
 
 1. iPad Pro 11" touch (1194×834): tap product → keypad quantity 4 → touch pay →
    receipt issued → new sale.
@@ -98,10 +101,15 @@ runs were fixed before the final pass; this file records the final evidence.
     → checkout → receipt → paid history row with verifier.
 20. Closing the PromptPay dialog leaves checkout disabled until receipt is
     verified; reopening reuses the pending session; cancel works.
+21. Auto verification: active signed webhook → POS shows “waiting for automatic
+    confirmation” → test sends a correctly signed payment event → POS polls,
+    shows paid without staff action → sale completes → provider event log shows
+    `processed`.
 
 PromptPay visual captures: `test-results/visual/promptpay-accounts.png`,
 `promptpay-accounts-ipad.png`, `pos-promptpay-qr-ipad.png`,
-`promptpay-history.png`.
+`promptpay-history.png`, `promptpay-static-ipad.png`,
+`promptpay-provider.png`, `pos-promptpay-auto-ipad.png`.
 
 iPad visual captures: `test-results/visual/pos-ipad-landscape.png`,
 `shift-cashcount-ipad.png`, `pos-ipad-portrait.png`.
