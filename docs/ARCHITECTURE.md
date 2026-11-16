@@ -122,7 +122,22 @@ business_date)` indexes. Refunds subtract; COGS comes from the cost snapshot on
 `sale_items`, so historical margin does not move when a product cost changes.
 Read models/warehouse are a later scale step, not needed for v1 volumes.
 
-## 10. Known limits (honest)
+## 10. Customer display, media and loyalty
+
+- The POS can open `/display` in a second window. Cart snapshots travel over a
+  same-origin `BroadcastChannel` plus `localStorage` fallback. The display gets
+  line names, quantities, unit prices, discounts, VAT and totals only; it never
+  receives customer PII or cost.
+- Product images are uploaded as base64 PNG/JPEG/WebP, checked by magic bytes,
+  capped at 1.3 MB, stored under `UPLOAD_DIR` with UUID names and served from
+  `/uploads`. Built-in category artwork is static SVG. `image_url` accepts only
+  site-relative paths or http(s).
+- Loyalty points earn on the final paid total. Redemption converts points at
+  `businesses.point_value_satang`, applies as an order-level discount after
+  promotions, and is recorded as a negative ledger entry. Refunds restore the
+  redeemed proportion; voids restore all redeemed points.
+
+## 11. Known limits (honest)
 
 - Weighted/loose goods: quantity is an integer unit; sold-by-weight is not
   enabled in v1 (schema uses integer `qty`).
@@ -130,6 +145,16 @@ Read models/warehouse are a later scale step, not needed for v1 volumes.
 - Payment provider integration is adapter-based; only the manual attestation
   and test HMAC adapters ship. PromptPay/e-Tax need a licensed provider and
   legal review before go-live.
+- Purchase returns from a received PO are not implemented; supplier credit
+  notes are recorded manually in v1.
+- Customer CSV import, custom role builder and BXGY/bundle promotions are not
+  exposed.
+- Product images are stored on the API host under `UPLOAD_DIR` and served from
+  `/uploads`; production should put this on a persistent volume backed up with
+  the database.
+- The customer display is a same-origin second window (BroadcastChannel +
+  localStorage). It shows line names, quantities, prices and totals only; no
+  customer PII or cost. A dedicated hardware display driver is out of scope.
 - Background jobs (settlement import, expiry) are in-process scheduled tasks;
   a durable worker queue is the production next step.
 - Reports are computed live; caching is intentionally omitted until measured.

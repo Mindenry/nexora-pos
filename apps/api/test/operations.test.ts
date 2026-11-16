@@ -119,6 +119,28 @@ afterAll(async () => {
   await db.close();
 });
 
+describe('product image upload', () => {
+  it('accepts a real PNG and rejects a file with the wrong signature', async () => {
+    const png =
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/l8X8WQAAAABJRU5ErkJggg==';
+    const uploaded = await withStore(agent, storeId)
+      .post('/api/uploads/product-image')
+      .send({ mimeType: 'image/png', dataBase64: png });
+    expect(uploaded.status).toBe(201);
+    expect(uploaded.body.data.url).toMatch(/^\/uploads\/.+\.png$/);
+
+    const served = await agent.get(uploaded.body.data.url);
+    expect(served.status).toBe(200);
+    expect(served.headers['content-type']).toContain('image/png');
+
+    const spoofed = await withStore(agent, storeId)
+      .post('/api/uploads/product-image')
+      .send({ mimeType: 'image/png', dataBase64: Buffer.from('not a png at all').toString('base64') });
+    expect(spoofed.status).toBe(422);
+    expect(spoofed.body.error.code).toBe('VALIDATION_FAILED');
+  });
+});
+
 describe('purchasing and receiving', () => {
   it('runs draft → submit → approve → partial receive → full receive', async () => {
     const supplier = await withStore(agent, storeId)
@@ -253,6 +275,60 @@ describe('stock count and promotions', () => {
     expect(count.status).toBe(200);
     expect(count.body.data.variances[0].difference).toBe(-3);
     expect(await onHand(storeId, productB.variantId)).toBe(before - 3);
+  });
+
+  it('earns and redeems loyalty points as a checkout discount', async () => {
+    const customer = await withStore(agent, storeId)
+      .post('/api/customers')
+      .send({ name: 'Loyalty Tester', phone: '089-000-0001', consentMarketing: true });
+    expect(customer.status).toBe(201);
+    const customerId = customer.body.data.id;
+
+    const first = await withStore(agent, storeId)
+      .post('/api/pos/checkout')
+      .send({
+        operationId: randomUUID(),
+        items: [{ variantId: productB.variantId, qty: 1 }],
+        customerId,
+        payments: [{ method: 'cash', amountSatang: 20_000 }],
+      });
+    expect(first.status).toBe(201);
+    expect(first.body.data.loyaltyPoints).toBe(2);
+    expect(first.body.data.totalSatang).toBe(20_000);
+
+    const profile = await withStore(agent, storeId).get(`/api/customers/${customerId}`);
+    expect(profile.body.data.points).toBe(2);
+
+    const second = await withStore(agent, storeId)
+      .post('/api/pos/checkout')
+      .send({
+        operationId: randomUUID(),
+        items: [{ variantId: productB.variantId, qty: 1 }],
+        customerId,
+        redeemPoints: 2,
+        payments: [{ method: 'cash', amountSatang: 19_800 }],
+      });
+    expect(second.status).toBe(201);
+    expect(second.body.data.pointsRedeemed).toBe(2);
+    expect(second.body.data.pointsDiscountSatang).toBe(200);
+    expect(second.body.data.totalSatang).toBe(19_800);
+    expect(second.body.data.receipt.pointsRedeemed).toBe(2);
+    expect(second.body.data.loyaltyPoints).toBe(1);
+
+    const after = await withStore(agent, storeId).get(`/api/customers/${customerId}`);
+    expect(after.body.data.points).toBe(1);
+
+    const tooMany = await withStore(agent, storeId)
+      .post('/api/pos/checkout')
+      .send({
+        operationId: randomUUID(),
+        items: [{ variantId: productB.variantId, qty: 1 }],
+        customerId,
+        redeemPoints: 999,
+        payments: [{ method: 'cash', amountSatang: 20_000 }],
+      });
+    expect(tooMany.status).toBe(422);
+    expect(tooMany.body.error.code).toBe('DOMAIN_POINTS_INSUFFICIENT');
   });
 
   it('applies an automatic promotion, then voids and restores stock', async () => {

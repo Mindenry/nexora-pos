@@ -62,6 +62,8 @@ interface BusinessRow {
   receipt_prefix: string;
   receipt_footer: string;
   loyalty_earn_per_baht: number;
+  point_value_satang: number;
+  loyalty_redemption_enabled: boolean;
   offline_cash_enabled: boolean;
   discount_limit_bp: number;
   allow_negative_stock: boolean;
@@ -177,7 +179,8 @@ export async function resolveUserContext(
     const business = await client.query<BusinessRow>(
       `SELECT id, name, legal_name, tax_id, address, phone, email, currency, timezone,
               vat_rate_bp, prices_include_tax, receipt_prefix, receipt_footer,
-              loyalty_earn_per_baht, offline_cash_enabled, discount_limit_bp, allow_negative_stock
+              loyalty_earn_per_baht, point_value_satang, loyalty_redemption_enabled,
+              offline_cash_enabled, discount_limit_bp, allow_negative_stock
        FROM businesses WHERE tenant_id = $1`,
       [user.tenantId],
     );
@@ -233,6 +236,8 @@ export async function resolveUserContext(
         receiptPrefix: businessRow.receipt_prefix,
         receiptFooter: businessRow.receipt_footer,
         loyaltyEarnPerBaht: businessRow.loyalty_earn_per_baht,
+        pointValueSatang: businessRow.point_value_satang,
+        loyaltyRedemptionEnabled: businessRow.loyalty_redemption_enabled,
         offlineCashEnabled: businessRow.offline_cash_enabled,
         discountLimitBp: businessRow.discount_limit_bp,
         allowNegativeStock: businessRow.allow_negative_stock,

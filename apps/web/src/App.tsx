@@ -20,6 +20,7 @@ const ReportsPage = lazy(() => import('./pages/reports').then((m) => ({ default:
 const EmployeesPage = lazy(() => import('./pages/employees').then((m) => ({ default: m.EmployeesPage })));
 const SettingsPage = lazy(() => import('./pages/settings').then((m) => ({ default: m.SettingsPage })));
 const PlatformPage = lazy(() => import('./pages/platform').then((m) => ({ default: m.PlatformPage })));
+const CustomerDisplayPage = lazy(() => import('./pages/display').then((m) => ({ default: m.CustomerDisplayPage })));
 
 function IndexRedirect() {
   const { me, can } = useAuth();
@@ -123,5 +124,16 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
   },
-  { path: '*', element: <NotFoundPage /> },
+  {
+    path: '/display',
+    element: (
+      <RequireAuth>
+        <CustomerDisplayPage />
+      </RequireAuth>
+    ),
+  },
+  {
+    path: '*',
+    element: <NotFoundPage />,
+  },
 ]);

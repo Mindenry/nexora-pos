@@ -22,6 +22,11 @@ Authentication is a `nexora_session` httpOnly cookie. Every mutation must send
 send `x-store-id`; the session tenant can never be overridden by the client.
 All mutating commands take `operationId` (UUID) for idempotent replay.
 
+Checkout accepts `redeemPoints` when a customer is attached; points are converted
+at `businesses.point_value_satang`, applied after promotions and before tax, and
+recorded as a negative `loyalty_ledger` entry (`redeem`). The sale stores
+`points_redeemed` and `points_discount_satang`.
+
 ## Auth
 
 | Method | Path | Permission | Notes |
@@ -87,6 +92,7 @@ All mutating commands take `operationId` (UUID) for idempotent replay.
 | POST | `/pos/held` | sales.create | park a cart |
 | DELETE | `/pos/held/:id` | sales.create | |
 | POST | `/pos/stock-check` | sales.create | authoritative on-hand for cart variants |
+| POST | `/uploads/product-image` | products.update | PNG/JPEG/WebP base64 (≤1.3 MB), signature-checked, returns `/uploads/...` |
 
 ## Sales, refunds, shifts
 
@@ -165,7 +171,9 @@ All aggregates are computed from `sales`, `sale_items`, `payments`, `refunds` an
 | GET | `/platform/overview` | tenants, usage, GMV, plans |
 | GET | `/platform/tenants` | search + pagination |
 | GET/PATCH | `/platform/tenants/:id` | status, plan, feature overrides |
-| GET/POST | `/platform/plans` | |
+| GET | `/platform/plans` | |
+| POST | `/platform/plans` | create plan |
+| PATCH | `/platform/plans/:id` | edit price/limits/features |
 | GET | `/platform/audit` | cross-tenant audit |
 | GET | `/platform/health` | DB size, migrations, money integrity |
 

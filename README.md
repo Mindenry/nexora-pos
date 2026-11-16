@@ -14,6 +14,8 @@ ledger, RBAC, tenant isolation, offline cash sales and a real PostgreSQL schema.
 - Express API with cookie sessions, scrypt password hashing, RBAC + store scope,
   Zod validation, idempotent checkout and audit logs.
 - React admin + POS terminal backed by the API. No hardcoded dashboard numbers.
+- Product images (uploaded or built-in artwork), customer-facing second display,
+  loyalty points redemption, plan management.
 - Checkout → payment → stock movement → receipt → shift cash, in one transaction.
 - Refunds linked to sale lines, stock transfers, purchase receiving, stock counts.
 - Reports computed from sales/ledger data (sales, profit, inventory, tax, staff).

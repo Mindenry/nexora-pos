@@ -41,11 +41,18 @@ The platform admin has no tenant and lands on `/platform`.
 4. **POS** — open a shift, scan `8850000000001` or tap a product, pay cash.
    The receipt number, stock deduction, cash movement and audit row are one
    transaction. Press `F2` to focus search, `F4` to pay.
-5. **Sales** — open the newest receipt, refund one line, print the refund slip.
+5. **Customer display** — press the monitor icon in the POS header. It opens a
+   second window for the customer showing the live cart, total and change. On a
+   real counter, drag it to the second screen and press fullscreen.
+6. **Loyalty** — attach a customer, press “ใช้คะแนน”; points convert at the
+   configured satang value and the receipt shows points used and earned.
+7. **Images** — edit a product, upload a real photo (PNG/JPEG/WebP) or pick one
+   of the built-in category artworks. The POS and customer display use it.
+8. **Sales** — open the newest receipt, refund one line, print the refund slip.
    Check the shift’s expected cash afterwards.
-6. **Reports** — Sales / Profit / Tax / Inventory tabs; export CSV.
-7. **Platform** — suspend a tenant (revokes sessions), change plan, inspect money
-   integrity.
+9. **Reports** — Sales / Profit / Tax / Inventory tabs; export CSV.
+10. **Platform** — suspend a tenant (revokes sessions), change plan, edit plan
+    definitions, inspect money integrity.
 
 ## Offline rehearsal
 

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Home care category artwork">
+  <rect width="800" height="600" fill="#F3F0E8"/>
+  <circle cx="160" cy="470" r="150" fill="#E9E1D3"/>
+  <ellipse cx="410" cy="486" rx="300" ry="30" fill="#1B211D" opacity=".08"/>
+  <g>
+    <rect x="204" y="286" width="150" height="170" rx="26" fill="#FBF8F1" stroke="#202823" stroke-width="4"/>
+    <ellipse cx="279" cy="290" rx="75" ry="18" fill="#D9CFC0"/>
+    <ellipse cx="279" cy="326" rx="38" ry="12" fill="#E9E1D3"/>
+    <ellipse cx="279" cy="326" rx="16" ry="6" fill="#B9AC9B"/>
+  </g>
+  <g>
+    <rect x="410" y="250" width="116" height="206" rx="30" fill="#CFE1D8"/>
+    <rect x="438" y="210" width="60" height="48" rx="12" fill="#2F6B5A"/>
+    <path d="M468 210v-26h44v20" fill="none" stroke="#202823" stroke-width="6" stroke-linecap="round"/>
+    <rect x="428" y="322" width="80" height="88" rx="10" fill="#FBF8F1" opacity=".75"/>
+    <path d="M446 352h44M446 374h28" stroke="#2F6B5A" stroke-width="5" stroke-linecap="round" opacity=".55"/>
+  </g>
+  <g>
+    <path d="M572 356h128v78c0 20-16 36-36 36h-56c-20 0-36-16-36-36z" fill="#D8A54A" opacity=".85"/>
+    <path d="M590 356c0-18 14-32 32-32h28c18 0 32 14 32 32" fill="none" stroke="#202823" stroke-width="6"/>
+    <path d="M600 392h72" stroke="#FBF8F1" stroke-width="6" stroke-linecap="round" opacity=".6"/>
+  </g>
+</svg>

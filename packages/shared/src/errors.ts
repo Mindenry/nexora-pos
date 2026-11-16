@@ -33,6 +33,8 @@ export const ERROR_DEFINITIONS: Record<string, ErrorDefinition> = {
   DOMAIN_PURCHASE_STATE: { status: 409, retryable: false, messageTh: 'สถานะใบสั่งซื้อไม่ถูกต้องสำหรับขั้นตอนนี้', messageEn: 'This purchase order is not in a valid state for that action.' },
   DOMAIN_RECEIVE_EXCEEDS: { status: 422, retryable: false, messageTh: 'รับสินค้าเกินจำนวนที่สั่ง', messageEn: 'Receiving exceeds the ordered quantity.' },
   DOMAIN_COUPON_INVALID: { status: 422, retryable: false, messageTh: 'คูปองไม่ถูกต้องหรือหมดอายุ', messageEn: 'Coupon is invalid or expired.' },
+  DOMAIN_POINTS_INSUFFICIENT: { status: 422, retryable: false, messageTh: 'คะแนนสะสมไม่เพียงพอ', messageEn: 'Not enough loyalty points.' },
+  DOMAIN_LOYALTY_DISABLED: { status: 422, retryable: false, messageTh: 'ร้านนี้ยังไม่เปิดใช้การแลกคะแนน', messageEn: 'Loyalty redemption is disabled.' },
   DOMAIN_SUBSCRIPTION_INACTIVE: { status: 402, retryable: false, messageTh: 'การสมัครใช้งานไม่พร้อมใช้งาน', messageEn: 'The subscription is not active.' },
   DOMAIN_LAST_OWNER: { status: 409, retryable: false, messageTh: 'ต้องมีเจ้าของธุรกิจอย่างน้อยหนึ่งคน', messageEn: 'At least one owner must remain.' },
   DOMAIN_OFFLINE_DISABLED: { status: 422, retryable: false, messageTh: 'ร้านนี้ไม่อนุญาตให้ขายแบบออฟไลน์', messageEn: 'Offline sales are disabled for this store.' },

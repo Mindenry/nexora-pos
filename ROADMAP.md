@@ -37,6 +37,7 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 
 ## MILESTONE 4 — Products & inventory ✅
 - [x] Product CRUD, variants, barcodes, categories, brands, units
+- [x] Product images: real uploads (signature-checked) + designed category artwork
 - [x] CSV import/export, duplicate SKU/barcode constraints, archive
 - [x] Movement-based stock (no editable balance), adjustments with reasons
 - [x] Transfers with dispatch/receive and over-receipt protection
@@ -54,6 +55,8 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 - [x] Sales history/detail, void with permission and audit
 - [x] Keyboard flow (F2 search, F4 pay, Escape) verified in Playwright
 - [x] Offline cash queue + automatic idempotent sync verified in Playwright
+- [x] Customer-facing second display (real-time cart, total, paid/change)
+- [x] Loyalty points redemption with receipt/ledger/refund reversal
 - [ ] Automated PromptPay/card provider (staff attestation only)
 
 ## MILESTONE 6 — Finance & operations ✅
@@ -67,10 +70,9 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 
 ## MILESTONE 7 — Customers & promotions ✅
 - [x] Customer directory/profile/history, consent, PDPA anonymisation
-- [x] Loyalty ledger, tiers, points liability
+- [x] Loyalty ledger, tiers, points liability, redeem at POS with refund/void restoration
 - [x] Promotions: order/product/category %, fixed amount, coupons, min spend,
       time windows, usage limits, priority and explicit stacking rules
-- [ ] Loyalty redemption at the till (programme policy deferred)
 - [ ] Buy-X-get-Y / bundles (schema-ready, not exposed)
 
 ## MILESTONE 8 — Reports & analytics ✅
@@ -84,14 +86,16 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 ## MILESTONE 9 — SaaS & offline ✅
 - [x] Plans, subscriptions, store/employee limits, feature flags
 - [x] Suspension revokes sessions; platform admin console
-- [x] Platform overview, tenant detail, plan change, audit, health/integrity
+- [x] Platform overview, tenant detail, plan change, plan definition editor,
+      audit, health/integrity
 - [x] IndexedDB catalog cache + outbox, replay, failure display, manual retry
 - [ ] Billing/invoicing integration for subscriptions (deferred)
 
 ## MILESTONE 10 — Hardening & release 🟡
 - [x] Threat model and security controls (`docs/SECURITY.md`)
-- [x] Unit/property/integration tests: 28 passing
-- [x] E2E: 7 journeys passing on real Chrome (incl. offline + keyboard)
+- [x] Unit/property/integration tests: 30 passing
+- [x] E2E: 10 journeys passing on real Chrome (incl. offline, customer display,
+      keyboard, loyalty redemption, 1024×768 cashier layout)
 - [x] Typecheck, lint and production build clean
 - [x] Browser visual review light/dark, desktop/mobile
 - [x] Backup + restore drill with money reconciliation
@@ -103,7 +107,7 @@ Status legend: ✅ done and verified · 🟡 implemented, some verification pend
 
 ## Known deferred scope
 Weighted goods, FIFO costing, purchase returns, provider settlement import,
-chargebacks, e-Tax submission, loyalty redemption, BXGY/bundles, durable worker
-queue, multi-currency, email verification/password reset. None are presented in
-the UI as working features; each is listed with rationale in
+chargebacks, e-Tax submission, BXGY/bundles, customer CSV import, custom role
+builder, durable worker queue, multi-currency, email verification/password reset.
+None are presented in the UI as working features; each is listed with rationale in
 `docs/ARCHITECTURE.md` §10, `docs/DOMAIN.md` §8 and `docs/SECURITY.md`.

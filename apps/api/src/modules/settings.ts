@@ -31,9 +31,11 @@ export function settingsRoutes(): Router {
            vat_rate_bp=COALESCE($9,vat_rate_bp), prices_include_tax=COALESCE($10,prices_include_tax),
            receipt_footer=COALESCE($11,receipt_footer), receipt_prefix=COALESCE($12,receipt_prefix),
            loyalty_earn_per_baht=COALESCE($13,loyalty_earn_per_baht),
-           offline_cash_enabled=COALESCE($14,offline_cash_enabled),
-           discount_limit_bp=COALESCE($15,discount_limit_bp), updated_at=now()
-         WHERE tenant_id=$16 AND id=$17
+           point_value_satang=COALESCE($14,point_value_satang),
+           loyalty_redemption_enabled=COALESCE($15,loyalty_redemption_enabled),
+           offline_cash_enabled=COALESCE($16,offline_cash_enabled),
+           discount_limit_bp=COALESCE($17,discount_limit_bp), updated_at=now()
+         WHERE tenant_id=$18 AND id=$19
          RETURNING *`,
         [
           input.name ?? null,
@@ -49,6 +51,8 @@ export function settingsRoutes(): Router {
           input.receiptFooter ?? null,
           input.receiptPrefix ?? null,
           input.loyaltyEarnPerBaht ?? null,
+          input.pointValueSatang ?? null,
+          input.loyaltyRedemptionEnabled ?? null,
           input.offlineCashEnabled ?? null,
           input.discountLimitBp ?? null,
           ctx.tenant!.id,

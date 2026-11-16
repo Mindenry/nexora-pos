@@ -16,7 +16,7 @@ import { useAuth } from '../lib/auth';
 import { useLang } from '../lib/i18n';
 import { useFormat } from '../lib/format';
 import { PageBody, PageHeader } from '../components/shell';
-import { BarList, Donut, KpiCard, TrendChart } from '../components/charts';
+import { BarList, Donut, TrendChart } from '../components/charts';
 import {
   Button,
   Card,
@@ -45,6 +45,13 @@ interface DashboardData {
     orders: number;
     aovSatang: number;
     itemsSold: number;
+  };
+  previousKpis?: {
+    grossSalesSatang: number;
+    netSalesSatang: number;
+    grossProfitSatang: number;
+    orders: number;
+    aovSatang: number;
   };
   trend: Array<{ date: string; salesSatang: number; orders: number }>;
   topProducts: Array<{ name: string; qty: number; revenueSatang: number }>;
@@ -100,6 +107,48 @@ export function DashboardPage() {
     value: item.amountSatang,
     color: PAYMENT_COLORS[index % PAYMENT_COLORS.length]!,
   }));
+
+  const delta = (current: number, previous: number | undefined) => {
+    if (previous === undefined || previous === 0) return undefined;
+    const change = ((current - previous) / previous) * 100;
+    return {
+      value: `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`,
+      positive: change >= 0,
+    };
+  };
+  const previous = data?.previousKpis;
+  const metrics = kpis
+    ? [
+        {
+          label: t('ยอดขายรวม', 'Gross sales'),
+          value: money(kpis.grossSalesSatang),
+          sub: `${number(kpis.orders)} ${t('บิล', 'orders')}`,
+          icon: CircleDollarSign,
+          delta: delta(kpis.grossSalesSatang, previous?.grossSalesSatang),
+        },
+        {
+          label: t('ยอดขายสุทธิ', 'Net sales'),
+          value: money(kpis.netSalesSatang),
+          sub: `${t('คืนสินค้า', 'Refunds')} ${money(kpis.refundsSatang)}`,
+          icon: Wallet,
+          delta: delta(kpis.netSalesSatang, previous?.netSalesSatang),
+        },
+        {
+          label: t('กำไรขั้นต้น', 'Gross profit'),
+          value: money(kpis.grossProfitSatang),
+          sub: `${t('อัตรากำไร', 'Margin')} ${percent(marginBp)} · ${t('หลัง VAT', 'ex-VAT')}`,
+          icon: TrendingUp,
+          delta: delta(kpis.grossProfitSatang, previous?.grossProfitSatang),
+        },
+        {
+          label: t('เฉลี่ยต่อบิล', 'Average order'),
+          value: money(kpis.aovSatang),
+          sub: `${number(kpis.itemsSold)} ${t('ชิ้น', 'items')} · ${money(kpis.discountsSatang)} ${t('ส่วนลด', 'discounts')}`,
+          icon: ReceiptText,
+          delta: delta(kpis.aovSatang, previous?.aovSatang),
+        },
+      ]
+    : null;
 
   return (
     <PageBody>
@@ -179,36 +228,51 @@ export function DashboardPage() {
         </InlineAlert>
       ) : kpis ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <KpiCard
-              label={t('ยอดขายรวม', 'Gross sales')}
-              value={money(kpis.grossSalesSatang)}
-              sub={`${number(kpis.orders)} ${t('บิล', 'orders')}`}
-              icon={<CircleDollarSign className="h-4 w-4" />}
-              tone="jade"
-            />
-            <KpiCard
-              label={t('ยอดขายสุทธิ', 'Net sales')}
-              value={money(kpis.netSalesSatang)}
-              sub={`${t('คืนสินค้า', 'Refunds')} ${money(kpis.refundsSatang)}`}
-              icon={<Wallet className="h-4 w-4" />}
-            />
-            <KpiCard
-              label={t('กำไรขั้นต้น', 'Gross profit')}
-              value={money(kpis.grossProfitSatang)}
-              sub={`${t('อัตรากำไร', 'Margin')} ${percent(marginBp)} · ${t('หลัง VAT', 'ex-VAT')}`}
-              icon={<TrendingUp className="h-4 w-4" />}
-              tone={kpis.grossProfitSatang >= 0 ? 'jade' : 'danger'}
-            />
-            <KpiCard
-              label={t('เฉลี่ยต่อบิล', 'Average order')}
-              value={money(kpis.aovSatang)}
-              sub={`${number(kpis.itemsSold)} ${t('ชิ้น', 'items')} · ${money(kpis.discountsSatang)} ${t('ส่วนลด', 'discounts')}`}
-              icon={<ReceiptText className="h-4 w-4" />}
-            />
-          </div>
+          <Card className="animate-rise overflow-hidden">
+            <div className="grid grid-cols-2 xl:grid-cols-4">
+              {(metrics ?? []).map((metric, index) => (
+                <div
+                  key={metric.label}
+                  className={cn(
+                    'border-line p-4 sm:p-5',
+                    index % 2 === 1 && 'border-l',
+                    index >= 2 && 'border-t xl:border-t-0',
+                    index > 0 && 'xl:border-l',
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-[10.5px] font-medium uppercase tracking-[0.06em] text-faint">
+                      {metric.label}
+                    </p>
+                    <metric.icon className="h-4 w-4 text-jade/70" strokeWidth={1.8} />
+                  </div>
+                  <p className="num mt-2 text-[25px] font-semibold leading-none tracking-tight text-text">
+                    {metric.value}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    {metric.delta ? (
+                      <span
+                        className={cn(
+                          'num rounded px-1.5 py-0.5 text-[10.5px] font-medium',
+                          metric.delta.positive ? 'bg-jade-soft text-jade' : 'bg-danger-soft text-danger',
+                        )}
+                      >
+                        {metric.delta.value}
+                      </span>
+                    ) : null}
+                    <span className="text-[10px] text-faint">
+                      {metric.delta ? t('เทียบช่วงก่อน', 'vs previous') : metric.sub}
+                    </span>
+                  </div>
+                  {metric.delta ? (
+                    <p className="mt-1 truncate text-[10.5px] text-muted">{metric.sub}</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </Card>
 
-          <div className="mt-4 grid gap-4 xl:grid-cols-3">
+          <div className="animate-rise animate-rise-1 mt-4 grid gap-4 xl:grid-cols-3">
             <Card className="xl:col-span-2">
               <CardHeader
                 title={t('แนวโน้มยอดขาย', 'Sales trend')}
@@ -243,7 +307,7 @@ export function DashboardPage() {
             </Card>
           </div>
 
-          <div className="mt-4 grid gap-4 xl:grid-cols-5">
+          <div className="animate-rise animate-rise-2 mt-4 grid gap-4 xl:grid-cols-5">
             <Card className="xl:col-span-2">
               <CardHeader
                 title={t('สินค้าขายดี', 'Best sellers')}
@@ -321,7 +385,7 @@ export function DashboardPage() {
             </Card>
           </div>
 
-          <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <div className="animate-rise animate-rise-3 mt-4 grid gap-4 xl:grid-cols-2">
             <Card>
               <CardHeader
                 title={t('สต๊อกต่ำ', 'Low stock')}

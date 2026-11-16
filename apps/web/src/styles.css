@@ -124,6 +124,16 @@
     background: var(--jade);
     color: #fff;
   }
+  html {
+    color-scheme: light;
+  }
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
+  input,
+  textarea {
+    caret-color: var(--jade);
+  }
   :focus-visible {
     outline: 2px solid var(--jade);
     outline-offset: 2px;
@@ -170,6 +180,59 @@
     background-image: linear-gradient(var(--line) 1px, transparent 1px),
       linear-gradient(90deg, var(--line) 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+  .animate-rise {
+    animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-rise-1 {
+    animation-delay: 60ms;
+  }
+  .animate-rise-2 {
+    animation-delay: 120ms;
+  }
+  .animate-rise-3 {
+    animation-delay: 180ms;
+  }
+  .display-pop {
+    animation: display-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .cart-flash {
+    animation: cart-flash 0.45s ease-out;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes display-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes cart-flash {
+  0% {
+    background: var(--jade-soft);
+  }
+  100% {
+    background: transparent;
   }
 }
 

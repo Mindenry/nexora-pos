@@ -26,6 +26,8 @@ interface SaleRow {
   total_satang: number;
   cost_satang: number;
   refunded_satang: number;
+  points_redeemed: number;
+  points_discount_satang: number;
   business_date: string;
   occurred_at: string;
   receipt_snapshot: any;
@@ -315,6 +317,22 @@ export async function performRefund(
             [tenantId, sale.customer_id, sale.id, -points, `Refund ${number}`],
           );
         }
+        if (Number(sale.points_redeemed) > 0) {
+          const restored = await client.query<{ restored: number }>(
+            `SELECT COALESCE(sum(points_delta),0)::bigint AS restored FROM loyalty_ledger
+             WHERE tenant_id=$1 AND sale_id=$2 AND type='adjust' AND reason LIKE 'Points restored%'`,
+            [tenantId, sale.id],
+          );
+          const target = Math.round((Number(sale.points_redeemed) * newRefunded) / Number(sale.total_satang));
+          const toRestore = Math.max(0, target - Number(restored.rows[0]?.restored ?? 0));
+          if (toRestore > 0) {
+            await client.query(
+              `INSERT INTO loyalty_ledger (tenant_id, customer_id, sale_id, points_delta, type, reason)
+               VALUES ($1,$2,$3,$4,'adjust',$5)`,
+              [tenantId, sale.customer_id, sale.id, toRestore, `Points restored (refund ${number})`],
+            );
+          }
+        }
       }
 
       await client.query(
@@ -442,6 +460,13 @@ export async function voidSale(
             `INSERT INTO loyalty_ledger (tenant_id, customer_id, sale_id, points_delta, type, reason)
              VALUES ($1,$2,$3,$4,'adjust',$5)`,
             [tenantId, sale.customer_id, saleId, -points, `Void ${sale.number}`],
+          );
+        }
+        if (Number(sale.points_redeemed) > 0) {
+          await client.query(
+            `INSERT INTO loyalty_ledger (tenant_id, customer_id, sale_id, points_delta, type, reason)
+             VALUES ($1,$2,$3,$4,'adjust',$5)`,
+            [tenantId, sale.customer_id, saleId, Number(sale.points_redeemed), `Points restored (void ${sale.number})`],
           );
         }
       }

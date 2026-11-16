@@ -171,6 +171,21 @@ const CATALOG: Array<{
 
 const CATEGORY_CODES = ['COF', 'DRK', 'SNK', 'DRY', 'CON', 'HOM', 'COS', 'ELE', 'APP', 'STA', 'HLT', 'PET'];
 
+const CATEGORY_IMAGE: Record<string, string> = {
+  กาแฟ: '/images/categories/coffee.svg',
+  เครื่องดื่ม: '/images/categories/drinks.svg',
+  ขนม: '/images/categories/snacks.svg',
+  อาหารแห้ง: '/images/categories/dry-goods.svg',
+  เครื่องปรุง: '/images/categories/condiments.svg',
+  ของใช้ในบ้าน: '/images/categories/home-care.svg',
+  เครื่องสำอาง: '/images/categories/cosmetics.svg',
+  อิเล็กทรอนิกส์: '/images/categories/electronics.svg',
+  เสื้อผ้า: '/images/categories/apparel.svg',
+  เครื่องเขียน: '/images/categories/stationery.svg',
+  สุขภาพ: '/images/categories/health.svg',
+  สัตว์เลี้ยง: '/images/categories/pet.svg',
+};
+
 const CUSTOMERS = [
   { name: 'คุณสมชาย ใจดี', phone: '080-000-0001', tier: 'gold' },
   { name: 'คุณสมหญิง รักงาน', phone: '080-000-0002', tier: 'silver' },
@@ -399,16 +414,17 @@ async function main(): Promise<void> {
         const priceSatang = item.price * 100;
         const costSatang = item.cost * 100;
         const product = await client.query<{ id: string }>(
-          `INSERT INTO products (tenant_id, category_id, brand_id, unit_id, name, description, type,
+          `INSERT INTO products (tenant_id, category_id, brand_id, unit_id, name, description, image_url, type,
              track_inventory, reorder_point, status)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,true,5,'active') RETURNING id`,
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true,5,'active') RETURNING id`,
           [
             tenantId,
             categoryId,
             brandIds[catIndex % brandIds.length],
             pcsUnitId,
             item.name,
-            `${item.name} — ตัวอย่างสินค้าสำหรับเดโม`,
+            `${item.name} - ตัวอย่างสินค้าสำหรับเดโม`,
+            CATEGORY_IMAGE[category.category] ?? '',
             item.variants ? 'variable' : 'simple',
           ],
         );
@@ -601,6 +617,8 @@ async function main(): Promise<void> {
     receiptPrefix: base.businessRow.receipt_prefix,
     receiptFooter: base.businessRow.receipt_footer,
     loyaltyEarnPerBaht: base.businessRow.loyalty_earn_per_baht,
+    pointValueSatang: base.businessRow.point_value_satang,
+    loyaltyRedemptionEnabled: base.businessRow.loyalty_redemption_enabled,
     offlineCashEnabled: base.businessRow.offline_cash_enabled,
     discountLimitBp: base.businessRow.discount_limit_bp,
     allowNegativeStock: base.businessRow.allow_negative_stock,

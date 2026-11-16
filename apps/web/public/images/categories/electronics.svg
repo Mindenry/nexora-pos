@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Electronics category artwork">
+  <rect width="800" height="600" fill="#F3F0E8"/>
+  <circle cx="160" cy="140" r="150" fill="#DDE8E0"/>
+  <ellipse cx="400" cy="488" rx="310" ry="30" fill="#1B211D" opacity=".08"/>
+  <g>
+    <rect x="220" y="292" width="176" height="138" rx="44" fill="#FBF8F1" stroke="#202823" stroke-width="4"/>
+    <path d="M220 334h176" stroke="#202823" stroke-width="3" opacity=".2"/>
+    <circle cx="268" cy="374" r="24" fill="#2F6B5A"/>
+    <circle cx="348" cy="374" r="24" fill="#2F6B5A" opacity=".65"/>
+    <circle cx="268" cy="374" r="8" fill="#FBF8F1"/>
+    <circle cx="348" cy="374" r="8" fill="#FBF8F1"/>
+  </g>
+  <g>
+    <rect x="430" y="272" width="118" height="190" rx="28" fill="#202823"/>
+    <rect x="450" y="300" width="78" height="78" rx="16" fill="#4A5A52"/>
+    <path d="M466 408h46M466 428h30" stroke="#DDE8E0" stroke-width="6" stroke-linecap="round" opacity=".7"/>
+  </g>
+  <path d="M568 420c34-58 44-118 24-170" fill="none" stroke="#C77B55" stroke-width="12" stroke-linecap="round"/>
+  <path d="M592 250l-6 40M592 250l38 10" stroke="#C77B55" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="592" cy="250" r="14" fill="#C77B55"/>
+</svg>

@@ -52,6 +52,9 @@ export interface CheckoutResult {
   changeSatang: number;
   itemCount: number;
   loyaltyPoints: number;
+  pointsRedeemed: number;
+  pointsDiscountSatang: number;
+  customerPointsBalance: number | null;
   customer: { id: string; name: string } | null;
   receipt: Record<string, unknown>;
   appliedPromotions: Array<{ id: string; code: string; name: string; amountSatang: number }>;
@@ -114,7 +117,32 @@ export async function performCheckout(
       }
 
       const promotions = await loadActivePromotions(client, tenantId);
-      const quote = quoteCart({
+
+      let customer: {
+        id: string;
+        name: string;
+        phone: string | null;
+        tier: string;
+        points: number;
+      } | null = null;
+      if (input.customerId) {
+        const found = await client.query<{
+          id: string;
+          name: string;
+          phone: string | null;
+          tier: string;
+          points: number;
+        }>(
+          `SELECT c.id, c.name, c.phone, c.tier,
+                  COALESCE((SELECT sum(points_delta) FROM loyalty_ledger l WHERE l.customer_id = c.id), 0)::bigint AS points
+           FROM customers c WHERE c.tenant_id = $1 AND c.id = $2`,
+          [tenantId, input.customerId],
+        );
+        if (!found.rows[0]) throw new NexoraError('NOT_FOUND', { entity: 'customer' });
+        customer = { ...found.rows[0], points: Number(found.rows[0].points) };
+      }
+
+      const quoteInput = {
         lines: input.items.map((item, index) => {
           const variant = variants.get(item.variantId)!;
           return {
@@ -136,7 +164,8 @@ export async function performCheckout(
         taxRateBp: business.vatRateBp,
         pricesIncludeTax: business.pricesIncludeTax,
         memberDiscountBp: 0,
-      });
+      };
+      let quote = quoteCart(quoteInput);
 
       if (input.couponCode && quote.ignoredCouponReason) {
         throw new NexoraError('DOMAIN_COUPON_INVALID', { reason: quote.ignoredCouponReason });
@@ -146,6 +175,30 @@ export async function performCheckout(
       const limitSatang = Math.floor((quote.subtotalSatang * business.discountLimitBp) / 10_000);
       if (manualDiscount > limitSatang && !ctx.permissions.has('sales.cancel')) {
         throw new NexoraError('AUTH_PERMISSION_DENIED', { reason: 'discount_limit', limitSatang });
+      }
+
+      let pointsRedeemed = 0;
+      let pointsDiscountSatang = 0;
+      const requestedPoints = input.redeemPoints ?? 0;
+      if (requestedPoints > 0) {
+        if (!customer) throw new NexoraError('VALIDATION_FAILED', { field: 'redeemPoints', reason: 'customer_required' });
+        if (!business.loyaltyRedemptionEnabled) throw new NexoraError('DOMAIN_LOYALTY_DISABLED');
+        if (business.pointValueSatang <= 0) throw new NexoraError('DOMAIN_LOYALTY_DISABLED');
+        if (customer.points < requestedPoints) {
+          throw new NexoraError('DOMAIN_POINTS_INSUFFICIENT', {
+            available: customer.points,
+            requested: requestedPoints,
+          });
+        }
+        pointsRedeemed = Math.min(
+          requestedPoints,
+          Math.floor(quote.totalSatang / business.pointValueSatang),
+        );
+        if (pointsRedeemed <= 0) {
+          throw new NexoraError('DOMAIN_POINTS_INSUFFICIENT', { reason: 'nothing_to_redeem' });
+        }
+        pointsDiscountSatang = pointsRedeemed * business.pointValueSatang;
+        quote = quoteCart({ ...quoteInput, extraDiscountSatang: pointsDiscountSatang });
       }
 
       const qtyByVariant = new Map<string, number>();
@@ -250,16 +303,6 @@ export async function performCheckout(
         prefix: store.receiptPrefix || business.receiptPrefix || 'R',
       });
 
-      let customer: { id: string; name: string; phone: string | null; tier: string } | null = null;
-      if (input.customerId) {
-        const found = await client.query<{ id: string; name: string; phone: string | null; tier: string }>(
-          'SELECT id, name, phone, tier FROM customers WHERE tenant_id=$1 AND id=$2',
-          [tenantId, input.customerId],
-        );
-        if (!found.rows[0]) throw new NexoraError('NOT_FOUND', { entity: 'customer' });
-        customer = found.rows[0];
-      }
-
       const receiptSnapshotBase = {
         type: 'sale',
         number,
@@ -292,6 +335,8 @@ export async function performCheckout(
         changeSatang: changeTotal,
         vatRateBp: business.vatRateBp,
         pricesIncludeTax: business.pricesIncludeTax,
+        pointsRedeemed,
+        pointsDiscountSatang,
         payments: normalizedPayments.map((p) => ({
           method: p.method.code,
           methodName: p.method.name,
@@ -308,8 +353,8 @@ export async function performCheckout(
           (tenant_id, store_id, shift_id, employee_id, customer_id, number, status,
            subtotal_satang, discount_satang, tax_satang, total_satang, cost_satang,
            change_satang, item_count, business_date, occurred_at, note, receipt_snapshot,
-           operation_id, device_id, source)
-         VALUES ($1,$2,$3,$4,$5,$6,'completed',$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20)
+           operation_id, device_id, source, points_redeemed, points_discount_satang)
+         VALUES ($1,$2,$3,$4,$5,$6,'completed',$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21,$22)
          RETURNING id, occurred_at`,
         [
           tenantId,
@@ -332,6 +377,8 @@ export async function performCheckout(
           input.operationId,
           input.deviceId ?? null,
           input.offline ? 'offline' : 'online',
+          pointsRedeemed,
+          pointsDiscountSatang,
         ],
       );
       const saleId = sale.rows[0]!.id;
@@ -455,6 +502,13 @@ export async function performCheckout(
           );
           await client.query('UPDATE sales SET loyalty_points=$1 WHERE id=$2', [loyaltyPoints, saleId]);
         }
+        if (pointsRedeemed > 0) {
+          await client.query(
+            `INSERT INTO loyalty_ledger (tenant_id, customer_id, sale_id, points_delta, type, reason)
+             VALUES ($1,$2,$3,$4,'redeem','Redeemed at checkout')`,
+            [tenantId, customer.id, saleId, -pointsRedeemed],
+          );
+        }
       }
 
       for (const promo of quote.appliedPromotions) {
@@ -530,6 +584,8 @@ export async function performCheckout(
           taxSatang: quote.taxSatang,
           paymentMethods: normalizedPayments.map((p) => p.method.code),
           source: input.offline ? 'offline' : 'online',
+          pointsRedeemed,
+          pointsDiscountSatang,
         },
         correlationId: ctx.correlationId,
       });
@@ -547,6 +603,9 @@ export async function performCheckout(
         changeSatang: changeTotal,
         itemCount: quote.itemCount,
         loyaltyPoints,
+        pointsRedeemed,
+        pointsDiscountSatang,
+        customerPointsBalance: customer ? customer.points - pointsRedeemed + loyaltyPoints : null,
         customer: customer ? { id: customer.id, name: customer.name } : null,
         receipt: receiptSnapshot,
         appliedPromotions: quote.appliedPromotions,

@@ -14,6 +14,7 @@ import { LangProvider } from './lib/i18n';
 import { queryClient } from './lib/query';
 import { ThemeProvider } from './lib/theme';
 import { ToastProvider } from './components/ui';
+import { AppErrorBoundary } from './components/error-boundary';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -29,7 +30,9 @@ createRoot(document.getElementById('root')!).render(
                   </div>
                 }
               >
-                <RouterProvider router={router} />
+                <AppErrorBoundary>
+                  <RouterProvider router={router} />
+                </AppErrorBoundary>
               </Suspense>
             </AuthProvider>
           </ToastProvider>

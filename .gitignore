@@ -8,6 +8,8 @@ coverage/
 .db-credential-backup
 .pgdata/
 backups/
+uploads/
+apps/api/uploads/
 playwright-report/
 test-results/
 *.log

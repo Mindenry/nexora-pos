@@ -11,7 +11,9 @@ import {
   CreditCard,
   LayoutDashboard,
   LogOut,
+  Maximize2,
   Minus,
+  MonitorUp,
   PauseCircle,
   Percent,
   Plus,
@@ -50,6 +52,8 @@ import {
   type OutboxItem,
 } from '../lib/offline';
 import { printReceipt } from '../lib/print';
+import { publishDisplay } from '../lib/display';
+import { categoryArt } from '../lib/art';
 import { MoneyInput } from '../components/money-input';
 import { ReceiptView, type ReceiptSnapshot } from '../components/receipt';
 import {
@@ -116,6 +120,8 @@ interface PosBootstrap {
     receiptFooter: string;
     offlineCashEnabled: boolean;
     loyaltyEarnPerBaht: number;
+    pointValueSatang: number;
+    loyaltyRedemptionEnabled: boolean;
   };
   store: { id: string; name: string; code: string; address: string; phone: string; timezone: string };
   employee: { id: string; displayName: string };
@@ -149,6 +155,7 @@ interface CartLine {
   trackInventory: boolean;
   onHand: number;
   taxRateBp: number | null;
+  imageUrl: string;
 }
 
 interface CustomerLite {
@@ -176,6 +183,9 @@ interface CheckoutResult {
   taxSatang: number;
   discountSatang: number;
   loyaltyPoints: number;
+  pointsRedeemed?: number;
+  pointsDiscountSatang?: number;
+  customerPointsBalance?: number | null;
   warnings: string[];
   replayed?: boolean;
   receipt: ReceiptSnapshot;
@@ -207,6 +217,7 @@ export function PosPage() {
   const [couponCode, setCouponCode] = useState('');
   const [couponOpen, setCouponOpen] = useState(false);
   const [customer, setCustomer] = useState<CustomerLite | null>(null);
+  const [redeemPoints, setRedeemPoints] = useState(0);
   const [now, setNow] = useState(new Date());
 
   const [variantPicker, setVariantPicker] = useState<PosProduct | null>(null);
@@ -314,35 +325,118 @@ export function PosPage() {
     [localDelta],
   );
 
-  const quote = useMemo(() => {
-    if (!data || cart.length === 0) return null;
-    try {
-      return quoteCart({
-        lines: cart.map((line) => ({
-          key: line.variantId,
-          variantId: line.variantId,
-          productId: line.productId,
-          categoryId: line.categoryId,
-          name: line.name,
-          sku: line.sku,
-          qty: line.qty,
-          unitPriceSatang: line.unitPriceSatang,
-          unitCostSatang: 0,
-          lineDiscount: line.lineDiscount,
-        })),
-        orderDiscount,
-        couponCode: couponCode.trim() || null,
-        promotions: data.promotions,
-        taxRateBp: data.business.vatRateBp,
-        pricesIncludeTax: data.business.pricesIncludeTax,
-        memberDiscountBp: 0,
-      });
-    } catch {
-      return null;
-    }
-  }, [data, cart, orderDiscount, couponCode]);
+  const buildQuote = useCallback(
+    (extraDiscountSatang: number) => {
+      if (!data || cart.length === 0) return null;
+      try {
+        return quoteCart({
+          lines: cart.map((line) => ({
+            key: line.variantId,
+            variantId: line.variantId,
+            productId: line.productId,
+            categoryId: line.categoryId,
+            name: line.name,
+            sku: line.sku,
+            qty: line.qty,
+            unitPriceSatang: line.unitPriceSatang,
+            unitCostSatang: 0,
+            lineDiscount: line.lineDiscount,
+          })),
+          orderDiscount,
+          couponCode: couponCode.trim() || null,
+          promotions: data.promotions,
+          taxRateBp: data.business.vatRateBp,
+          pricesIncludeTax: data.business.pricesIncludeTax,
+          memberDiscountBp: 0,
+          extraDiscountSatang,
+        });
+      } catch {
+        return null;
+      }
+    },
+    [data, cart, orderDiscount, couponCode],
+  );
+
+  const baseQuote = useMemo(() => buildQuote(0), [buildQuote]);
+  const pointValue = data?.business.pointValueSatang ?? 0;
+  const maxRedeemable =
+    customer && pointValue > 0
+      ? Math.min(customer.points ?? 0, Math.floor((baseQuote?.totalSatang ?? 0) / pointValue))
+      : 0;
+  const pointsUsed = Math.min(redeemPoints, maxRedeemable);
+  const pointsDiscount = pointsUsed * pointValue;
+  const quote = useMemo(
+    () => (pointsDiscount > 0 ? buildQuote(pointsDiscount) : baseQuote),
+    [baseQuote, buildQuote, pointsDiscount],
+  );
+
+  useEffect(() => {
+    if (redeemPoints > maxRedeemable) setRedeemPoints(maxRedeemable);
+  }, [redeemPoints, maxRedeemable]);
 
   const total = quote?.totalSatang ?? 0;
+
+  useEffect(() => {
+    if (!data || success) return;
+    const timer = window.setTimeout(() => {
+      if (cart.length === 0 || !quote) {
+        publishDisplay({
+          kind: 'idle',
+          storeName: data.store.name,
+          businessName: data.business.name,
+        });
+        return;
+      }
+      publishDisplay({
+        kind: 'cart',
+        storeName: data.store.name,
+        businessName: data.business.name,
+        lines: quote.lines.map((line) => {
+          const source = cart.find((item) => item.variantId === line.variantId);
+          return {
+            name: line.name,
+            qty: line.qty,
+            unitPriceSatang: line.unitPriceSatang,
+            totalSatang: line.totalSatang,
+            imageUrl: source?.imageUrl,
+          };
+        }),
+        itemCount: quote.itemCount,
+        subtotalSatang: quote.subtotalSatang,
+        discountSatang: quote.discountSatang,
+        taxSatang: quote.taxSatang,
+        totalSatang: quote.totalSatang,
+        pricesIncludeTax: data.business.pricesIncludeTax,
+        vatRateBp: data.business.vatRateBp,
+      });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [data, cart, quote, success]);
+
+  const openCustomerDisplay = () => {
+    const popup = window.open(
+      '/display',
+      'nexora-customer-display',
+      'popup=yes,width=1280,height=800,menubar=no,toolbar=no,location=no,status=no',
+    );
+    if (!popup) {
+      toast.info(
+        t('เบราว์เซอร์บล็อกหน้าต่างใหม่', 'Popup blocked'),
+        t('อนุญาตป๊อปอัปเพื่อเปิดจอลูกค้า', 'Allow popups to open the customer display.'),
+      );
+      return;
+    }
+    popup.focus();
+  };
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen();
+    } else {
+      const request = document.documentElement.requestFullscreen?.();
+      request?.catch(() => undefined);
+    }
+  };
 
   const addVariant = useCallback(
     (product: PosProduct, variant: PosVariant) => {
@@ -377,6 +471,7 @@ export function PosPage() {
             trackInventory: variant.trackInventory,
             onHand: available,
             taxRateBp: product.taxRateBp,
+            imageUrl: product.imageUrl,
           },
         ];
       });
@@ -620,6 +715,7 @@ export function PosPage() {
         tenderedSatang: row.tenderedSatang,
         reference: row.reference || undefined,
       })),
+      redeemPoints: pointsUsed > 0 ? pointsUsed : undefined,
       deviceId: deviceId(),
       occurredAt: new Date().toISOString(),
       offline,
@@ -649,6 +745,8 @@ export function PosPage() {
         changeSatang: changeTotal,
         vatRateBp: data.business.vatRateBp,
         pricesIncludeTax: data.business.pricesIncludeTax,
+        pointsRedeemed: pointsUsed,
+        pointsDiscountSatang: pointsDiscount,
         payments: payments.map((row) => ({
           method: row.method,
           methodName: paymentMethods.find((m) => m.code === row.method)?.name,
@@ -688,6 +786,14 @@ export function PosPage() {
       setCheckoutOpen(false);
       setOperationId(null);
       resetCart();
+      publishDisplay({
+        kind: 'paid',
+        storeName: data.store.name,
+        businessName: data.business.name,
+        number: receipt.number,
+        totalSatang: quote.totalSatang,
+        changeSatang: changeTotal,
+      });
       toast.info(t('บันทึกการขายออฟไลน์แล้ว', 'Offline sale queued'), t('จะซิงก์เมื่อออนไลน์', 'Will sync when online'));
       setSubmitting(false);
       return;
@@ -700,6 +806,14 @@ export function PosPage() {
       setCheckoutOpen(false);
       setOperationId(null);
       resetCart();
+      publishDisplay({
+        kind: 'paid',
+        storeName: data.store.name,
+        businessName: data.business.name,
+        number: result.data.number,
+        totalSatang: result.data.totalSatang,
+        changeSatang: result.data.changeSatang,
+      });
       await queryClient.invalidateQueries({ queryKey: ['pos-bootstrap'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       await queryClient.invalidateQueries({ queryKey: ['inventory'] });
@@ -733,6 +847,7 @@ export function PosPage() {
     setCouponCode('');
     setCouponOpen(false);
     setCustomer(null);
+    setRedeemPoints(0);
   };
 
   const holdSale = async () => {
@@ -858,7 +973,10 @@ export function PosPage() {
         {customer ? (
           <button
             type="button"
-            onClick={() => setCustomer(null)}
+            onClick={() => {
+              setCustomer(null);
+              setRedeemPoints(0);
+            }}
             className="rounded p-1 text-faint hover:text-danger"
             aria-label={t('ลบลูกค้า', 'Remove customer')}
           >
@@ -868,6 +986,53 @@ export function PosPage() {
           <Plus className="h-3.5 w-3.5 text-faint" />
         )}
       </div>
+
+      {customer && data.business.loyaltyRedemptionEnabled && (customer.points ?? 0) > 0 ? (
+        <div className="border-b border-line bg-jade-soft/25 px-4 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] text-muted">
+              {t('คะแนนสะสม', 'Points')}{' '}
+              <span className="num font-medium text-jade">{customer.points}</span>
+              {pointValue > 0 ? (
+                <span className="text-faint"> · 1 = {money(pointValue)}</span>
+              ) : null}
+            </span>
+            <button
+              type="button"
+              disabled={maxRedeemable <= 0}
+              onClick={() => setRedeemPoints(pointsUsed > 0 ? 0 : maxRedeemable)}
+              className="text-[11px] font-medium text-jade hover:underline disabled:text-faint disabled:no-underline"
+            >
+              {pointsUsed > 0 ? t('ยกเลิก', 'Clear') : t('ใช้คะแนน', 'Redeem')}
+            </button>
+          </div>
+          {pointsUsed > 0 ? (
+            <div className="mt-1.5 flex items-center gap-2">
+              <Input
+                type="number"
+                min={0}
+                max={maxRedeemable}
+                value={pointsUsed}
+                onChange={(event) =>
+                  setRedeemPoints(Math.max(0, Math.min(maxRedeemable, Number(event.target.value) || 0)))
+                }
+                className="h-8 w-20 text-right text-[12px]"
+                aria-label={t('จำนวนคะแนนที่ใช้', 'Points to redeem')}
+              />
+              <button
+                type="button"
+                onClick={() => setRedeemPoints(maxRedeemable)}
+                className="text-[10px] text-muted hover:text-text"
+              >
+                {t('สูงสุด', 'Max')}
+              </button>
+              <span className="num ml-auto text-[12px] font-medium text-jade">
+                -{money(pointsDiscount)}
+              </span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {cart.length === 0 ? (
@@ -891,9 +1056,18 @@ export function PosPage() {
               return (
                 <div key={line.variantId} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="line-clamp-2 text-[12.5px] font-medium leading-snug text-text">{line.name}</p>
-                      <p className="mt-0.5 text-[10px] text-faint">{line.sku || '—'}</p>
+                    <div className="flex min-w-0 items-start gap-2">
+                      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">
+                        {line.imageUrl ? (
+                          <img src={line.imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="flex h-full items-center justify-center text-[10px] text-faint">N</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="line-clamp-2 text-[12.5px] font-medium leading-snug text-text">{line.name}</p>
+                        <p className="mt-0.5 text-[10px] text-faint">{line.sku || '—'}</p>
+                      </div>
                     </div>
                     <button
                       type="button"
@@ -1085,7 +1259,7 @@ export function PosPage() {
             <select
               value={me.store?.id}
               onChange={(event) => setStore(event.target.value)}
-              className="max-w-[150px] bg-transparent text-[12px] font-medium focus:outline-none"
+              className="max-w-[112px] bg-transparent text-[12px] font-medium focus:outline-none sm:max-w-[150px]"
             >
               {me.stores.map((store) => (
                 <option key={store.id} value={store.id}>
@@ -1103,14 +1277,15 @@ export function PosPage() {
         <button
           type="button"
           onClick={() => setShiftPanelOpen(true)}
+          aria-label={shift ? t('กะเปิดอยู่', 'Shift open') : t('ยังไม่เปิดกะ', 'No shift')}
           className={cn(
-            'ml-1 flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px]',
+            'ml-1 flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 text-[11px]',
             shift ? 'border-jade-border bg-jade-soft text-jade' : 'border-amber/30 bg-amber-soft text-amber',
           )}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
-          {shift ? t('กะเปิดอยู่', 'Shift open') : t('ยังไม่เปิดกะ', 'No shift')}
-          {shift ? <span className="num hidden sm:inline">· {money(shift.expectedCashSatang, true)}</span> : null}
+          <span className="hidden sm:inline">{shift ? t('กะเปิดอยู่', 'Shift open') : t('ยังไม่เปิดกะ', 'No shift')}</span>
+          {shift ? <span className="num hidden lg:inline">· {money(shift.expectedCashSatang, true)}</span> : null}
         </button>
         <div className="flex-1" />
         {offline ? (
@@ -1118,23 +1293,42 @@ export function PosPage() {
             {t('ออฟไลน์', 'Offline')}
           </Badge>
         ) : (
-          <span className="hidden items-center gap-1 text-[10.5px] text-faint sm:flex">
+          <span className="hidden items-center gap-1 text-[10.5px] text-faint lg:flex">
             <Wifi className="h-3 w-3 text-jade" />
             {t('ออนไลน์', 'Online')}
           </span>
         )}
-        <span className="num hidden text-[12px] text-muted md:inline">
+        <span className="num hidden text-[12px] text-muted xl:inline">
           {now.toLocaleTimeString(locale === 'th' ? 'th-TH' : 'en-GB', { hour: '2-digit', minute: '2-digit' })}
         </span>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={toggleFullscreen}
+          title={t('เต็มจอ', 'Fullscreen')}
+          aria-label={t('เต็มจอ', 'Fullscreen')}
+          className="hidden sm:inline-flex"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={openCustomerDisplay}
+          title={t('เปิดจอลูกค้า', 'Open customer display')}
+          aria-label={t('จอลูกค้า', 'Customer display')}
+        >
+          <MonitorUp className="h-4 w-4" />
+        </Button>
         <Button size="sm" variant="ghost" onClick={() => setSyncOpen(true)}>
           <RefreshCw className={cn('h-3.5 w-3.5', syncing && 'animate-spin')} />
           {pendingCount > 0 ? (
             <span className="rounded bg-amber px-1 text-[9px] text-white">{pendingCount}</span>
           ) : (
-            <span className="hidden text-[10px] sm:inline">{t('ซิงก์', 'Sync')}</span>
+            <span className="hidden text-[10px] lg:inline">{t('ซิงก์', 'Sync')}</span>
           )}
         </Button>
-        <div className="hidden items-center gap-1.5 border-l border-line pl-2 sm:flex">
+        <div className="hidden items-center gap-1.5 border-l border-line pl-2 xl:flex">
           <span className="text-right text-[10.5px] leading-tight text-muted">
             {data.employee.displayName}
             <span className="block text-[9px] text-faint">{data.tenant.name}</span>
@@ -1185,7 +1379,7 @@ export function PosPage() {
                 {filteredProducts.length} {t('รายการ', 'items')}
               </span>
             </div>
-            <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+            <div className="flex flex-wrap gap-1.5">
               <button
                 type="button"
                 onClick={() => setCategory(null)}
@@ -1210,7 +1404,12 @@ export function PosPage() {
                       : 'border-line bg-surface text-muted hover:text-text',
                   )}
                 >
-                  {categoryLabel(item.name)}
+                  <span className="flex items-center gap-1.5">
+                    {categoryArt(item.name) ? (
+                      <img src={categoryArt(item.name)} alt="" className="h-4 w-4 rounded object-cover" />
+                    ) : null}
+                    {categoryLabel(item.name)}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1358,6 +1557,7 @@ export function PosPage() {
         selected={customer}
         onSelect={(value) => {
           setCustomer(value);
+          setRedeemPoints(0);
           setCustomerOpen(false);
         }}
       />
@@ -1805,6 +2005,17 @@ export function PosPage() {
               {success.loyaltyPoints > 0 ? (
                 <p className="mt-1 text-[11px] text-jade">
                   +{success.loyaltyPoints} {t('คะแนนสะสม', 'loyalty points')}
+                </p>
+              ) : null}
+              {success.pointsRedeemed && success.pointsRedeemed > 0 ? (
+                <p className="mt-1 text-[11px] text-amber">
+                  {t('ใช้', 'Used')} {success.pointsRedeemed} {t('คะแนน', 'points')} · -
+                  {money(success.pointsDiscountSatang ?? 0)}
+                </p>
+              ) : null}
+              {success.customerPointsBalance != null ? (
+                <p className="mt-0.5 text-[10px] text-faint">
+                  {t('คงเหลือ', 'Balance')} {success.customerPointsBalance} {t('คะแนน', 'points')}
                 </p>
               ) : null}
               {success.warnings.includes('OFFLINE_QUEUED') ? (

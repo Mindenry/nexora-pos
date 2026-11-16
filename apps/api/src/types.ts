@@ -59,6 +59,8 @@ export interface BusinessContext {
   receiptPrefix: string;
   receiptFooter: string;
   loyaltyEarnPerBaht: number;
+  pointValueSatang: number;
+  loyaltyRedemptionEnabled: boolean;
   offlineCashEnabled: boolean;
   discountLimitBp: number;
   allowNegativeStock: boolean;

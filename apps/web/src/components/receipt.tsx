@@ -28,8 +28,10 @@ export interface ReceiptSnapshot {
   changeSatang?: number;
   vatRateBp?: number;
   pricesIncludeTax?: boolean;
-  payments?: Array<{ methodName?: string; method?: string; amountSatang: number; reference?: string }>;
-  appliedPromotions?: Array<{ name: string; amountSatang: number }>;
+  pointsRedeemed?: number;
+  pointsDiscountSatang?: number;
+  loyaltyPoints?: number;
+  payments?: Array<{ methodName?: string; method?: string; amountSatang: number; reference?: string }>;  appliedPromotions?: Array<{ name: string; amountSatang: number }>;
   footer?: string;
   reprint?: boolean;
   originalNumber?: string;
@@ -134,12 +136,21 @@ export function ReceiptView({
               <span className="num">-{money(receipt.discountSatang)}</span>
             </div>
           ) : null}
-          {(receipt.appliedPromotions ?? []).map((promo) => (
-            <div key={promo.name} className="flex justify-between text-jade">
-              <span className="truncate">{promo.name}</span>
-              <span className="num">-{money(promo.amountSatang)}</span>
+          {(receipt.appliedPromotions ?? []).length > 0 ? (
+            <div className="flex flex-wrap gap-1 py-0.5">
+              {(receipt.appliedPromotions ?? []).map((promo) => (
+                <span key={promo.name} className="rounded bg-jade-soft px-1.5 py-0.5 text-[9px] text-jade">
+                  {promo.name}
+                </span>
+              ))}
             </div>
-          ))}
+          ) : null}
+          {Number(receipt.pointsRedeemed ?? 0) > 0 ? (
+            <div className="flex justify-between text-[10.5px] text-amber">
+              <span>{t('ใช้คะแนน', 'Points redeemed')} {receipt.pointsRedeemed}</span>
+              <span className="text-[9px] text-faint">{t('รวมในส่วนลด', 'in discount')}</span>
+            </div>
+          ) : null}
           <div className="flex justify-between">
             <span className="text-muted">
               {t('ภาษีมูลค่าเพิ่ม', 'VAT')} {((receipt.vatRateBp ?? 700) / 100).toFixed(0)}%

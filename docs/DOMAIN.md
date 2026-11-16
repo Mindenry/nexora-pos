@@ -110,5 +110,3 @@ Service charge and per-line tax overrides are schema-ready but not exposed in v1
 - Automatic provider settlement import and chargeback workflow.
 - e-Tax Invoice submission and credit/debit notes (needs provider + legal review).
 - Multi-currency and FX.
-- Loyalty redemption at the till (earning, tiers and liability report ship; spend
-  rules need an approved programme policy).

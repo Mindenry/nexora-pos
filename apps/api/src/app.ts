@@ -21,6 +21,7 @@ import { reportRoutes } from './modules/reports';
 import { salesRoutes } from './modules/sales';
 import { notificationRoutes, settingsRoutes } from './modules/settings';
 import { shiftRoutes } from './modules/shifts';
+import { uploadRoutes, UPLOAD_DIR } from './modules/uploads';
 
 export interface AppDeps {
   db: Db;
@@ -33,6 +34,7 @@ export function createApp({ db, config }: AppDeps): Express {
   app.set('trust proxy', config.isProd ? 1 : false);
   app.use(express.json({ limit: '2mb' }));
   app.use(cookieParser());
+  app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '30d', immutable: true, index: false, dotfiles: 'deny' }));
 
   app.use((req, res, next) => {
     const id = String(req.headers['x-request-id'] ?? randomUUID());
@@ -90,7 +92,7 @@ export function createApp({ db, config }: AppDeps): Express {
 
   const loginLimiter = rateLimit({
     windowMs: 15 * 60_000,
-    limit: 20,
+    limit: config.isProd ? 20 : 500,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
     skip: () => config.nodeEnv === 'test',
@@ -146,6 +148,7 @@ export function createApp({ db, config }: AppDeps): Express {
   protectedApi.use(settingsRoutes());
   protectedApi.use(notificationRoutes());
   protectedApi.use(reportRoutes());
+  protectedApi.use(uploadRoutes());
   protectedApi.use(platformRoutes(db));
 
   // Feature modules are registered by the module index (added per milestone).

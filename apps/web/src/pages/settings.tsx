@@ -7,6 +7,7 @@ import { useLang } from '../lib/i18n';
 import { useFormat } from '../lib/format';
 import { PageBody, PageHeader } from '../components/shell';
 import { ReceiptView } from '../components/receipt';
+import { MoneyInput } from '../components/money-input';
 import {
   Button,
   Card,
@@ -70,6 +71,8 @@ export function SettingsPage() {
     receiptFooter: '',
     receiptPrefix: 'R',
     loyaltyEarnPerBaht: 1,
+    pointValueSatang: 100,
+    loyaltyRedemptionEnabled: true,
     offlineCashEnabled: false,
     discountLimitPercent: 20,
   });
@@ -92,6 +95,8 @@ export function SettingsPage() {
       receiptFooter: b.receiptFooter,
       receiptPrefix: b.receiptPrefix,
       loyaltyEarnPerBaht: b.loyaltyEarnPerBaht,
+      pointValueSatang: b.pointValueSatang,
+      loyaltyRedemptionEnabled: b.loyaltyRedemptionEnabled,
       offlineCashEnabled: b.offlineCashEnabled,
       discountLimitPercent: b.discountLimitBp / 100,
     });
@@ -132,6 +137,8 @@ export function SettingsPage() {
           receiptFooter: form.receiptFooter,
           receiptPrefix: form.receiptPrefix,
           loyaltyEarnPerBaht: form.loyaltyEarnPerBaht,
+          pointValueSatang: form.pointValueSatang,
+          loyaltyRedemptionEnabled: form.loyaltyRedemptionEnabled,
           offlineCashEnabled: form.offlineCashEnabled,
           discountLimitBp: Math.round(form.discountLimitPercent * 100),
         },
@@ -248,6 +255,17 @@ export function SettingsPage() {
               <Field label={t('คะแนนต่อ 100 บาท', 'Points per THB 100')}>
                 <Input type="number" min={0} value={form.loyaltyEarnPerBaht} onChange={(event) => setForm({ ...form, loyaltyEarnPerBaht: Number(event.target.value) || 0 })} />
               </Field>
+              <Field label={t('มูลค่าคะแนน (บาท)', 'Point value (THB)')} hint={t('ใช้เมื่อลูกค้าแลกคะแนนที่จุดขาย', 'Applied when points are redeemed at the till.')}>
+                <MoneyInput value={form.pointValueSatang} onChange={(value) => setForm({ ...form, pointValueSatang: value })} />
+              </Field>
+              <div className="sm:col-span-2">
+                <Switch
+                  checked={form.loyaltyRedemptionEnabled}
+                  onChange={(value) => setForm({ ...form, loyaltyRedemptionEnabled: value })}
+                  label={t('เปิดให้แลกคะแนนที่จุดขาย', 'Allow points redemption at POS')}
+                  description={t('ปิดเพื่อสะสมอย่างเดียว', 'Disable to earn-only.')}
+                />
+              </div>
               <div className="sm:col-span-2">
                 <Switch
                   checked={form.offlineCashEnabled}

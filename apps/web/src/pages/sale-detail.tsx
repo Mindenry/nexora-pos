@@ -242,14 +242,18 @@ export function SaleDetailPage() {
         {t('กลับรายการขาย', 'Back to sales')}
       </button>
       <PageHeader
-        eyebrow={<SaleStatusBadge status={sale.status} />}
         title={
-          <span className="num flex items-center gap-3">
+          <span className="num flex flex-wrap items-center gap-3">
             {sale.number}
             <span className="num text-[16px] font-normal text-muted">{money(sale.totalSatang)}</span>
           </span>
         }
-        description={`${dateTime(sale.occurredAt)} · ${sale.storeName} · ${sale.employeeName}`}
+        description={
+          <span className="flex flex-wrap items-center gap-2">
+            <SaleStatusBadge status={sale.status} />
+            <span>{dateTime(sale.occurredAt)} · {sale.storeName} · {sale.employeeName}</span>
+          </span>
+        }
         actions={
           <>
             <Button variant="secondary" leftIcon={<Printer className="h-4 w-4" />} onClick={() => void printCurrent()}>

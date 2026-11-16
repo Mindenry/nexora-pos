@@ -162,10 +162,7 @@ export function OnboardingPage() {
 
       <main className="mx-auto max-w-5xl px-5 py-8">
         <div className="mb-6">
-          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-jade">
-            {t('พร้อมใช้งาน', 'Go live')}
-          </p>
-          <h1 className="mt-1 text-[26px] font-semibold tracking-tight">
+          <h1 className="text-[26px] font-semibold tracking-tight">
             {t('ตั้งค่าร้านให้พร้อมขาย', 'Get your store ready')}
           </h1>
           <p className="mt-1 max-w-2xl text-[13px] text-muted">

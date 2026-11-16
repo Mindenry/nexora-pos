@@ -139,7 +139,7 @@ export function PageHeader({
 
 export function PageBody({ children, wide = false }: { children: ReactNode; wide?: boolean }) {
   return (
-    <div className={cn('mx-auto w-full px-4 py-5 sm:px-6 lg:px-7', wide ? 'max-w-[1800px]' : 'max-w-[1500px]')}>
+    <div className={cn('mx-auto w-full animate-rise px-4 py-5 sm:px-6 lg:px-7', wide ? 'max-w-[1800px]' : 'max-w-[1500px]')}>
       {children}
     </div>
   );
@@ -251,14 +251,14 @@ function StoreSwitcher() {
   if (!me || me.stores.length === 0) return null;
   if (me.stores.length === 1) {
     return (
-      <div className="hidden items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] text-muted sm:flex">
+      <div className="hidden items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] text-muted lg:flex">
         <Store className="h-3.5 w-3.5" />
         <span className="font-medium text-text">{me.stores[0]!.name}</span>
       </div>
     );
   }
   return (
-    <label className="hidden items-center gap-1.5 rounded-lg border border-line bg-surface px-2 py-1 text-[12px] text-muted sm:flex">
+    <label className="hidden items-center gap-1.5 rounded-lg border border-line bg-surface px-2 py-1 text-[12px] text-muted lg:flex">
       <Store className="h-3.5 w-3.5 shrink-0" />
       <span className="sr-only">{t('สาขา', 'Branch')}</span>
       <select
@@ -739,19 +739,19 @@ export function AppShell() {
               <div className="flex items-center gap-2">
                 <h2 className="truncate text-[13.5px] font-semibold text-text">{t(pageTitle.th, pageTitle.en)}</h2>
                 {isDemo ? (
-                  <Badge tone="amber" className="hidden sm:inline-flex">
+                  <Badge tone="amber" className="hidden xl:inline-flex">
                     {t('ข้อมูลเดโม', 'Demo data')}
                   </Badge>
                 ) : null}
               </div>
-              <p className="hidden truncate text-[10.5px] text-faint sm:block">
+              <p className="hidden truncate text-[10.5px] text-faint xl:block">
                 {me?.tenant?.name ?? 'NEXORA Platform'} · {me?.store?.name ?? ''}
               </p>
             </div>
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="hidden h-9 items-center gap-2 rounded-lg border border-line bg-surface px-3 text-[12px] text-faint transition-colors hover:border-line-strong md:flex"
+              className="hidden h-9 items-center gap-2 rounded-lg border border-line bg-surface px-3 text-[12px] text-faint transition-colors hover:border-line-strong xl:flex"
             >
               <Search className="h-3.5 w-3.5" />
               <span>{t('ค้นหา…', 'Search…')}</span>
@@ -760,7 +760,7 @@ export function AppShell() {
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="rounded-md p-2 text-muted hover:bg-surface-3 md:hidden"
+              className="rounded-md p-2 text-muted hover:bg-surface-3 xl:hidden"
               aria-label={t('ค้นหา', 'Search')}
             >
               <Search className="h-4 w-4" />
@@ -768,7 +768,7 @@ export function AppShell() {
             <StoreSwitcher />
             <span
               className={cn(
-                'hidden h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] sm:flex',
+                'hidden h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] xl:flex',
                 online
                   ? 'border-line bg-surface text-muted'
                   : 'border-amber/30 bg-amber-soft text-amber',
@@ -778,7 +778,7 @@ export function AppShell() {
               {online ? <Wifi className="h-3.5 w-3.5" /> : <WifiOff className="h-3.5 w-3.5" />}
             </span>
             {me?.employee ? (
-              <Button size="sm" variant="primary" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate('/pos')} className="hidden sm:inline-flex">
+              <Button size="sm" variant="primary" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={() => navigate('/pos')} className="hidden xl:inline-flex">
                 {t('ขายสินค้า', 'New sale')}
               </Button>
             ) : null}

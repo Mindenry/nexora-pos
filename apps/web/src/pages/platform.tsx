@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Activity, Building2, Database, ShieldCheck } from 'lucide-react';
+import { Activity, Building2, Database, Plus, ShieldCheck } from 'lucide-react';
 import { api, errorMessage, qs } from '../lib/api';
 import { useLang } from '../lib/i18n';
 import { useFormat } from '../lib/format';
 import { PageBody, PageHeader } from '../components/shell';
 import { BarList, KpiCard } from '../components/charts';
+import { MoneyInput } from '../components/money-input';
 import {
   Badge,
   Button,
@@ -13,9 +14,13 @@ import {
   CardHeader,
   Drawer,
   EmptyState,
+  Field,
   InlineAlert,
   Input,
+  Modal,
+  Select,
   Skeleton,
+  Switch,
   Table,
   TD,
   TH,
@@ -74,6 +79,27 @@ export function PlatformPage() {
   const [search, setSearch] = useState('');
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [planDraft, setPlanDraft] = useState({
+    code: '',
+    name: '',
+    priceSatang: 0,
+    interval: 'monthly' as 'monthly' | 'yearly',
+    maxStores: 1,
+    maxEmployees: 5,
+    isActive: true,
+    features: {
+      pos: true,
+      inventory: true,
+      reports_basic: true,
+      purchasing: false,
+      loyalty: false,
+      multi_store: false,
+      offline: false,
+      priority_support: false,
+    } as Record<string, boolean>,
+  });
 
   const overview = useQuery({
     queryKey: ['platform-overview'],
@@ -129,16 +155,89 @@ export function PlatformPage() {
 
   const detailData = detail.data?.data;
 
+  const openPlan = (plan?: Plan) => {
+    setEditingPlan(plan ?? null);
+    setPlanDraft(
+      plan
+        ? {
+            code: plan.code,
+            name: plan.name,
+            priceSatang: plan.priceSatang,
+            interval: plan.interval as 'monthly' | 'yearly',
+            maxStores: plan.maxStores,
+            maxEmployees: plan.maxEmployees,
+            isActive: plan.isActive,
+            features: {
+              pos: true,
+              inventory: true,
+              reports_basic: true,
+              purchasing: false,
+              loyalty: false,
+              multi_store: false,
+              offline: false,
+              priority_support: false,
+              ...plan.features,
+            },
+          }
+        : {
+            code: '',
+            name: '',
+            priceSatang: 0,
+            interval: 'monthly',
+            maxStores: 1,
+            maxEmployees: 5,
+            isActive: true,
+            features: {
+              pos: true,
+              inventory: true,
+              reports_basic: true,
+              purchasing: false,
+              loyalty: false,
+              multi_store: false,
+              offline: false,
+              priority_support: false,
+            },
+          },
+    );
+    setPlanOpen(true);
+  };
+
+  const savePlan = async () => {
+    if (!planDraft.code.trim() || !planDraft.name.trim()) return;
+    setSubmitting(true);
+    try {
+      if (editingPlan) {
+        await api(`/platform/plans/${editingPlan.id}`, { method: 'PATCH', body: planDraft });
+      } else {
+        await api('/platform/plans', { method: 'POST', body: planDraft });
+      }
+      setPlanOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ['platform-plans'] });
+      await queryClient.invalidateQueries({ queryKey: ['platform-overview'] });
+      toast.success(t('บันทึกแพ็กเกจแล้ว', 'Plan saved'));
+    } catch (error) {
+      toast.error(t('บันทึกไม่สำเร็จ', 'Save failed'), errorMessage(error, locale));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <PageBody>
       <PageHeader
-        eyebrow={<Badge tone="violet">PLATFORM ADMIN</Badge>}
         title={t('ผู้ดูแลแพลตฟอร์ม', 'Platform administration')}
         description={t('จัดการองค์กร แพ็กเกจ สุขภาพระบบ และประวัติการทำงาน', 'Tenants, plans, system health and platform audit.')}
         actions={
-          <Button variant="secondary" onClick={() => void overview.refetch()}>
-            {t('รีเฟรช', 'Refresh')}
-          </Button>
+          <div className="flex items-center gap-2">
+            {tab === 'plans' ? (
+              <Button variant="primary" onClick={() => openPlan()} leftIcon={<Plus className="h-4 w-4" />}>
+                {t('เพิ่มแพ็กเกจ', 'New plan')}
+              </Button>
+            ) : null}
+            <Button variant="secondary" onClick={() => void overview.refetch()}>
+              {t('รีเฟรช', 'Refresh')}
+            </Button>
+          </div>
         }
       />
 
@@ -238,6 +337,9 @@ export function PlatformPage() {
                   <p key={key} className="flex justify-between"><span className="text-muted">{key}</span><span className={enabled ? 'text-jade' : 'text-faint'}>{enabled ? 'on' : 'off'}</span></p>
                 ))}
               </div>
+              <Button size="sm" variant="secondary" className="mt-3 w-full" onClick={() => openPlan(plan)}>
+                {t('แก้ไขแพ็กเกจ', 'Edit plan')}
+              </Button>
             </Card>
           ))}
         </div>
@@ -360,6 +462,83 @@ export function PlatformPage() {
           </div>
         ) : null}
       </Drawer>
+
+      <Modal
+        open={planOpen}
+        onClose={() => setPlanOpen(false)}
+        title={editingPlan ? t('แก้ไขแพ็กเกจ', 'Edit plan') : t('เพิ่มแพ็กเกจ', 'New plan')}
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPlanOpen(false)}>
+              {t('ยกเลิก', 'Cancel')}
+            </Button>
+            <Button variant="primary" loading={submitting} onClick={() => void savePlan()}>
+              {t('บันทึก', 'Save')}
+            </Button>
+          </>
+        }
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label={t('รหัส', 'Code')} required>
+            <Input
+              value={planDraft.code}
+              onChange={(event) => setPlanDraft({ ...planDraft, code: event.target.value.toLowerCase() })}
+              className="font-mono"
+              disabled={planDraft.code === 'starter' || planDraft.code === 'growth' || planDraft.code === 'scale'}
+            />
+          </Field>
+          <Field label={t('ชื่อแพ็กเกจ', 'Plan name')} required>
+            <Input value={planDraft.name} onChange={(event) => setPlanDraft({ ...planDraft, name: event.target.value })} />
+          </Field>
+          <Field label={t('ราคา / งวด', 'Price / interval')}>
+            <MoneyInput value={planDraft.priceSatang} onChange={(value) => setPlanDraft({ ...planDraft, priceSatang: value })} />
+          </Field>
+          <Field label={t('รอบบิล', 'Billing interval')}>
+            <Select
+              value={planDraft.interval}
+              onChange={(event) => setPlanDraft({ ...planDraft, interval: event.target.value as 'monthly' | 'yearly' })}
+            >
+              <option value="monthly">{t('รายเดือน', 'Monthly')}</option>
+              <option value="yearly">{t('รายปี', 'Yearly')}</option>
+            </Select>
+          </Field>
+          <Field label={t('จำนวนสาขาสูงสุด', 'Max stores')}>
+            <Input type="number" min={1} value={planDraft.maxStores} onChange={(event) => setPlanDraft({ ...planDraft, maxStores: Number(event.target.value) || 1 })} />
+          </Field>
+          <Field label={t('จำนวนพนักงานสูงสุด', 'Max employees')}>
+            <Input type="number" min={1} value={planDraft.maxEmployees} onChange={(event) => setPlanDraft({ ...planDraft, maxEmployees: Number(event.target.value) || 1 })} />
+          </Field>
+          <div className="sm:col-span-2">
+            <p className="mb-2 text-[12px] font-medium">{t('ฟีเจอร์ที่เปิดใช้', 'Enabled features')}</p>
+            <div className="grid grid-cols-2 gap-1 rounded-lg border border-line p-3">
+              {Object.keys(planDraft.features).map((feature) => (
+                <label key={feature} className="flex items-center gap-2 text-[11.5px]">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(planDraft.features[feature])}
+                    onChange={(event) =>
+                      setPlanDraft({
+                        ...planDraft,
+                        features: { ...planDraft.features, [feature]: event.target.checked },
+                      })
+                    }
+                    className="h-3.5 w-3.5 accent-[var(--jade)]"
+                  />
+                  {feature}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="sm:col-span-2">
+            <Switch
+              checked={planDraft.isActive}
+              onChange={(value) => setPlanDraft({ ...planDraft, isActive: value })}
+              label={t('เปิดขายแพ็กเกจนี้', 'Plan is available')}
+            />
+          </div>
+        </div>
+      </Modal>
     </PageBody>
   );
 }

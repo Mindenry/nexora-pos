@@ -72,6 +72,16 @@ if (await productButton.count()) {
   await productButton.click();
   await page.waitForTimeout(400);
   await shot('14-pos-cart');
+
+  // Customer-facing display in a second window.
+  const popupPromise = page.waitForEvent('popup');
+  await page.getByRole('button', { name: 'จอลูกค้า' }).click();
+  const display = await popupPromise;
+  await display.waitForLoadState('networkidle');
+  await display.waitForTimeout(900);
+  await display.screenshot({ path: `${outDir}/14b-customer-display.png` });
+  await display.close();
+
   const payButton = page.getByRole('button', { name: /ชำระเงิน/ }).last();
   if (await payButton.count()) {
     await payButton.click();
@@ -88,6 +98,16 @@ await page.evaluate(() => {
 await page.reload({ waitUntil: 'networkidle' });
 await shot('16-dashboard-dark');
 await page.evaluate(() => localStorage.setItem('nexora.theme', 'light'));
+
+// Cashier terminal at 1024x768 and a wide 1920 dashboard.
+await page.setViewportSize({ width: 1024, height: 768 });
+await page.goto(`${base}/pos`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1200);
+await shot('20-pos-1024');
+await page.setViewportSize({ width: 1920, height: 1080 });
+await page.goto(`${base}/dashboard`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(800);
+await shot('21-dashboard-1920');
 
 const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'th-TH', isMobile: true, hasTouch: true });
 const mobilePage = await mobile.newPage();

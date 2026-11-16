@@ -10,6 +10,7 @@
 | `WEB_ORIGIN` | yes | exact SPA origin for CSRF origin check |
 | `NODE_ENV` | no | `development`, `test`, `production` |
 | `LOG_LEVEL` | no | `debug`, `info`, `warn`, `error` |
+| `UPLOAD_DIR` | no | persistent directory for uploaded product images; default `./uploads` under the API working directory |
 
 The API loads the nearest `.env` walking up from its working directory. In
 production prefer the platform secret manager; never bake secrets into the web
@@ -40,6 +41,7 @@ Same-origin deployment is required for cookies (`SameSite=Lax`):
 
 ```
 browser ── HTTPS ── reverse proxy ── /api → node dist/index.js (API :4000)
+                                  ├── /uploads → API static images
                                   └── /    → static apps/web/dist
 ```
 
@@ -109,6 +111,20 @@ After a restore, reconcile `document_sequences` high-water marks before acceptin
 sales (compare `max(number)` per store to `next_number`) so receipt numbers never
 repeat. Do not reuse numbers. If the restore target is a different database,
 grant the backup role on that database or restore as the application owner.
+
+### Product image storage
+
+Uploaded images live outside PostgreSQL in `UPLOAD_DIR`. Back them up with the
+database using the same schedule:
+
+```powershell
+Compress-Archive -Path uploads\* -DestinationPath backups\uploads-$(Get-Date -Format yyyyMMdd).zip
+```
+
+Restore the archive to the same `UPLOAD_DIR` path so `/uploads/...` references
+continue to resolve. Images are content-addressed by UUID filenames; a missing
+image degrades to the product initial, but the sale/receipt is unaffected.
+
 
 
 ## Incident runbooks

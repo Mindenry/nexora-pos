@@ -20,6 +20,7 @@ session tokens, payment references, receipts, audit history, subscription state.
 | Denial of service | Login/scan flooding | Rate limits on login/global; bounded Zod inputs; body size 2 MB; JSON only |
 | Elevation of privilege | Hiding a button | Permission checked in API middleware against role_permissions; store scope checked against employee_stores; UI hiding is cosmetic only |
 | Injection | SQL/CSV/receipt content | Parameterised SQL only; sort whitelist; CSV/receipt HTML escaped; no dynamic SQL from user input |
+| Malicious upload | Product image upload | Only PNG/JPEG/WebP; magic-byte check; SVG and HTML rejected; 1.3 MB cap; UUID filename under a non-executable static path |
 | CSRF | Cross-site form | Origin allowlist + mandatory `x-nexora-client` header + SameSite cookie |
 | Duplicate money | Double tap / retry | `(tenant_id, operation_id)` idempotency with request hash; unique constraints on sale/refund document numbers |
 | Offline fraud | Queued card sale | Offline is cash-only and opt-in per tenant; sync verifies open shift, prices, stock policy and idempotency |
@@ -47,6 +48,11 @@ session tokens, payment references, receipts, audit history, subscription state.
   role changes, customer anonymisation, platform tenant changes.
 - PII minimisation: customer consent + anonymise endpoint; demo uses fictional
   data only; logs contain identifiers, not card data or customer PII.
+- Customer-facing display receives only line names, quantities, prices and
+  totals over a same-origin channel; it never receives customer phone/email or
+  cost data.
+- Image uploads: MIME allowlist, magic-byte verification, size limit, random
+  UUID filenames, no SVG/HTML, served with a static handler and no execution.
 - Secrets never committed; demo password is a public demo credential and the
   platform refuses it in production seed guidance.
 

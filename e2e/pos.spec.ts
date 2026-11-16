@@ -118,6 +118,62 @@ test.describe('NEXORA POS critical journeys', () => {
     await expect(page.getByText('ออนไลน์').first()).toBeVisible({ timeout: 15_000 });
   });
 
+  test('customer display mirrors the cart and confirms payment', async ({ page }) => {
+    await login(page);
+    await page.goto('/pos');
+    await page.waitForTimeout(1200);
+    await ensureShift(page);
+
+    const popupPromise = page.waitForEvent('popup');
+    await page.getByRole('button', { name: 'จอลูกค้า' }).click();
+    const display = await popupPromise;
+    await display.waitForLoadState('networkidle');
+    await expect(display.getByText(/ขอบคุณที่แวะมา|รายการของคุณ/)).toBeVisible({ timeout: 15_000 });
+
+    await page.locator('button.group').first().click();
+    await expect(display.getByText('รายการของคุณ')).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('button', { name: /ชำระเงิน/ }).last().click();
+    await page.getByRole('button', { name: 'ยืนยันการชำระเงิน' }).click();
+    await expect(page.getByRole('heading', { name: 'ชำระเงินสำเร็จ' })).toBeVisible({ timeout: 20_000 });
+    await expect(display.getByText('ชำระเงินสำเร็จ')).toBeVisible({ timeout: 15_000 });
+    await expect(display.getByRole('main').getByText('ขอบคุณที่ใช้บริการ')).toBeVisible();
+    await display.close();
+  });
+
+  test('1024×768 cashier layout keeps products and cart visible', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await login(page);
+    await page.goto('/pos');
+    await page.waitForTimeout(1200);
+    await ensureShift(page);
+    await expect(page.getByPlaceholder(/สแกนบาร์โค้ด/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'ตะกร้า' })).toBeVisible();
+    await expect(page.locator('button.group').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'จอลูกค้า' })).toBeVisible();
+  });
+
+  test('redeems loyalty points at the till', async ({ page }) => {
+    await login(page);
+    await page.goto('/pos');
+    await page.waitForTimeout(1200);
+    await ensureShift(page);
+
+    await page.locator('button.group').first().click();
+    await page.getByRole('button', { name: /เลือกลูกค้า/ }).click();
+    const search = page.getByPlaceholder('ค้นหาชื่อหรือเบอร์โทร');
+    await search.fill('สมชาย');
+    await page.waitForTimeout(600);
+    await page.getByText('คุณสมชาย ใจดี').first().click();
+    await expect(page.getByText('คะแนนสะสม')).toBeVisible();
+    await page.getByRole('button', { name: 'ใช้คะแนน' }).click();
+    await expect(page.getByRole('button', { name: 'ยกเลิก' })).toBeVisible();
+    await page.getByRole('button', { name: /ชำระเงิน/ }).last().click();
+    await page.getByRole('button', { name: 'ยืนยันการชำระเงิน' }).click();
+    await expect(page.getByRole('heading', { name: 'ชำระเงินสำเร็จ' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/ใช้ \d+ คะแนน/)).toBeVisible();
+  });
+
   test('platform admin sees the platform console', async ({ page }) => {
     await page.goto('/login');
     await page.fill('#email', 'admin@nexora.local');

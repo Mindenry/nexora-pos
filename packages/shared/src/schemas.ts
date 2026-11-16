@@ -86,7 +86,15 @@ export const productInputSchema = z.object({
   categoryId: uuidSchema.nullish(),
   brandId: uuidSchema.nullish(),
   unitId: uuidSchema.nullish(),
-  imageUrl: z.string().max(500).optional().or(z.literal('')),
+  imageUrl: z
+    .string()
+    .max(500)
+    .refine(
+      (value) => value === '' || value.startsWith('/') || /^https?:\/\//i.test(value),
+      'VALIDATION_IMAGE_URL',
+    )
+    .optional()
+    .or(z.literal('')),
   type: z.enum(['simple', 'variable']).default('simple'),
   costSatang: moneySchema,
   priceSatang: moneySchema,
@@ -133,6 +141,7 @@ export const checkoutSchema = z.object({
   couponCode: z.string().trim().max(40).optional().or(z.literal('')),
   customerId: uuidSchema.nullish(),
   payments: z.array(checkoutPaymentSchema).min(1).max(10),
+  redeemPoints: z.number().int().min(0).max(1_000_000).optional(),
   note: z.string().max(500).optional().or(z.literal('')),
   occurredAt: z.string().datetime({ offset: true }).optional(),
   deviceId: z.string().max(80).optional(),
@@ -359,6 +368,8 @@ export const businessSettingsSchema = z.object({
   receiptFooter: z.string().max(500).optional().or(z.literal('')),
   receiptPrefix: z.string().trim().max(10).optional(),
   loyaltyEarnPerBaht: z.number().int().min(0).max(1000).optional(),
+  pointValueSatang: z.number().int().min(0).max(100_000).optional(),
+  loyaltyRedemptionEnabled: z.boolean().optional(),
   offlineCashEnabled: z.boolean().optional(),
   discountLimitBp: z.number().int().min(0).max(10_000).optional(),
 });

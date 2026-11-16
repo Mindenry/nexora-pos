@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Archive,
@@ -14,6 +14,7 @@ import { useAuth } from '../lib/auth';
 import { useLang } from '../lib/i18n';
 import { useFormat } from '../lib/format';
 import { downloadFile } from '../lib/download';
+import { CATEGORY_ART } from '../lib/art';
 import { PageBody, PageHeader } from '../components/shell';
 import { MoneyInput } from '../components/money-input';
 import {
@@ -153,6 +154,8 @@ export function ProductsPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [csvText, setCsvText] = useState('');
   const [importResult, setImportResult] = useState<{ imported: number; errors: Array<{ row: number; message: string }> } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -338,6 +341,36 @@ export function ProductsPage() {
     }
   };
 
+  const uploadImage = async (file: File) => {
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      toast.error(t('ไฟล์รูปไม่รองรับ', 'Unsupported image'), 'PNG, JPEG, WebP');
+      return;
+    }
+    if (file.size > 1_300_000) {
+      toast.error(t('รูปใหญ่เกินไป', 'Image too large'), t('สูงสุด 1.3 MB', 'Max 1.3 MB'));
+      return;
+    }
+    setUploading(true);
+    try {
+      const dataBase64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const result = await api<{ url: string }>('/uploads/product-image', {
+        method: 'POST',
+        body: { mimeType: file.type, dataBase64 },
+      });
+      setDraft((prev) => ({ ...prev, imageUrl: result.data.url }));
+      toast.success(t('อัปโหลดรูปแล้ว', 'Image uploaded'));
+    } catch (error) {
+      toast.error(t('อัปโหลดไม่สำเร็จ', 'Upload failed'), errorMessage(error, locale));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const variableRow = useMemo(
     () => (draft.type === 'variable' && draft.variants.length === 0 ? true : false),
     [draft.type, draft.variants.length],
@@ -463,8 +496,12 @@ export function ProductsPage() {
                       <TR key={product.id}>
                         <TD>
                           <div className="flex items-center gap-2.5">
-                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-line bg-surface-2 text-[11px] font-semibold text-muted">
-                              {product.name.slice(0, 1)}
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-surface-2 text-[11px] font-semibold text-muted">
+                              {product.imageUrl ? (
+                                <img src={product.imageUrl} alt="" className="h-full w-full object-cover" />
+                              ) : (
+                                product.name.slice(0, 1)
+                              )}
                             </span>
                             <div className="min-w-0">
                               <p className="truncate text-[12.5px] font-medium text-text">{product.name}</p>
@@ -643,8 +680,84 @@ export function ProductsPage() {
             <Field label={t('รายละเอียด', 'Description')} className="sm:col-span-2">
               <Textarea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} rows={2} />
             </Field>
-            <Field label={t('URL รูปภาพ', 'Image URL')} className="sm:col-span-2">
-              <Input value={draft.imageUrl} onChange={(event) => setDraft({ ...draft, imageUrl: event.target.value })} placeholder="https://…" />
+            <Field
+              label={t('รูปสินค้า', 'Product image')}
+              hint={t('อัปโหลดรูปจริง หรือเลือกภาพหมวดหมู่', 'Upload a real photo or pick category artwork.')}
+              className="sm:col-span-2"
+            >
+              <div className="flex flex-wrap items-start gap-3">
+                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-line bg-surface-2">
+                  {draft.imageUrl ? (
+                    <img src={draft.imageUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="flex h-full items-center justify-center text-[20px] font-semibold text-faint">
+                      {draft.name.slice(0, 1) || 'N'}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      loading={uploading}
+                      leftIcon={<Upload className="h-3.5 w-3.5" />}
+                      onClick={() => fileRef.current?.click()}
+                    >
+                      {t('อัปโหลดรูป', 'Upload image')}
+                    </Button>
+                    {draft.imageUrl ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDraft((prev) => ({ ...prev, imageUrl: '' }))}
+                      >
+                        {t('ลบรูป', 'Remove')}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <Input
+                    value={draft.imageUrl}
+                    onChange={(event) => setDraft({ ...draft, imageUrl: event.target.value })}
+                    placeholder="/uploads/… หรือ https://…"
+                    className="text-[11.5px]"
+                  />
+                </div>
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) void uploadImage(file);
+                  event.target.value = '';
+                }}
+              />
+              <div className="mt-3">
+                <p className="mb-1.5 text-[10.5px] font-medium uppercase tracking-wide text-faint">
+                  {t('ภาพหมวดหมู่', 'Category artwork')}
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {CATEGORY_ART.map((art) => (
+                    <button
+                      key={art.key}
+                      type="button"
+                      onClick={() => setDraft({ ...draft, imageUrl: art.url })}
+                      className={cn(
+                        'h-14 w-[72px] shrink-0 overflow-hidden rounded-md border bg-surface-2 transition-colors',
+                        draft.imageUrl === art.url ? 'border-jade ring-2 ring-jade/20' : 'border-line hover:border-jade-border',
+                      )}
+                      title={t(art.labelTh, art.labelEn)}
+                    >
+                      <img src={art.url} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </Field>
           </div>
 

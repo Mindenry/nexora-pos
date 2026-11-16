@@ -15,6 +15,7 @@ import { useAuth, type Me } from '../lib/auth';
 import { useLang } from '../lib/i18n';
 import { Button, Card, Field, InlineAlert, Input } from '../components/ui';
 import { cn } from '../components/ui';
+import { SHOWCASE_ART } from '../lib/art';
 
 function BrandPanel() {
   const { t } = useLang();
@@ -40,10 +41,6 @@ function BrandPanel() {
           </div>
         </div>
         <div className="mt-20 max-w-[440px]">
-          <p className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10.5px] text-sidebar-muted">
-            <span className="h-1.5 w-1.5 rounded-full bg-jade" />
-            {t('สร้างสำหรับธุรกิจค้าปลีกไทย', 'Built for Thai retail')}
-          </p>
           <h1 className="text-balance text-[38px] font-semibold leading-[1.15] tracking-[-0.03em] xl:text-[44px]">
             {t('ทุกยอดขาย', 'Every sale')}
             <br />
@@ -55,6 +52,20 @@ function BrandPanel() {
               'Point of sale, stock, shifts, margin and multi-branch — on one provable set of records.',
             )}
           </p>
+          <p className="mt-4 flex items-center gap-2 text-[10.5px] text-sidebar-muted">
+            <span className="h-1.5 w-1.5 rounded-full bg-jade" />
+            {t('สร้างสำหรับธุรกิจค้าปลีกไทย', 'Built for Thai retail')}
+          </p>
+          <div className="mt-7 grid max-w-[430px] grid-cols-3 gap-2.5">
+            {SHOWCASE_ART.slice(0, 3).map((art) => (
+              <figure key={art.key} className="overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]">
+                <img src={art.url} alt="" className="aspect-[4/3] w-full object-cover opacity-90" />
+                <figcaption className="px-2 py-1.5 text-[9.5px] text-sidebar-muted">
+                  {t(art.labelTh, art.labelEn)}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </div>
       </div>
       <div className="relative grid max-w-[460px] grid-cols-2 gap-x-6 gap-y-4 border-t border-white/10 pt-6">
@@ -180,10 +191,7 @@ export function LoginPage() {
         </div>
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-[390px]">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-jade">
-              {t('ยินดีต้อนรับกลับ', 'Welcome back')}
-            </p>
-            <h1 className="mt-2 text-[28px] font-semibold tracking-tight text-text">
+            <h1 className="text-[28px] font-semibold tracking-tight text-text">
               {t('เข้าสู่ระบบร้านของคุณ', 'Sign in to your store')}
             </h1>
             <p className="mt-1 text-[13px] text-muted">
@@ -339,10 +347,7 @@ export function RegisterPage() {
         </div>
         <div className="flex flex-1 items-center justify-center py-8">
           <div className="w-full max-w-[520px]">
-            <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-jade">
-              {t('เริ่มต้นใน 2 นาที', 'Set up in two minutes')}
-            </p>
-            <h1 className="mt-2 text-[28px] font-semibold tracking-tight">
+            <h1 className="text-[28px] font-semibold tracking-tight">
               {t('สร้างธุรกิจและสาขาแรก', 'Create your business and first store')}
             </h1>
             <p className="mt-1 text-[13px] text-muted">

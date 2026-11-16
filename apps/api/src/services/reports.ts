@@ -59,6 +59,60 @@ export async function salesReport(client: DbClient, scope: ReportScope) {
   const grossProfit = revenueExTax - cogs;
   const orders = Number(totals.orders);
 
+  const dayCount = Math.max(
+    1,
+    Math.round(
+      (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000,
+    ) + 1,
+  );
+  const previousTo = addDays(from, -1);
+  const previousFrom = addDays(from, -dayCount);
+  const previousTotalsResult = await client.query<{
+    orders: number;
+    gross: number;
+    tax: number;
+    cost: number;
+    items: number;
+  }>(
+    `SELECT count(*)::bigint AS orders,
+            COALESCE(sum(total_satang),0)::bigint AS gross,
+            COALESCE(sum(tax_satang),0)::bigint AS tax,
+            COALESCE(sum(cost_satang),0)::bigint AS cost,
+            COALESCE(sum(item_count),0)::bigint AS items
+     FROM sales
+     WHERE tenant_id=$1 AND store_id=$2 AND business_date BETWEEN $3 AND $4 AND status <> 'voided'`,
+    [tenantId, storeId, previousFrom, previousTo],
+  );
+  const previousRefundsResult = await client.query<{ amount: number; cost: number; tax: number }>(
+    `SELECT COALESCE(sum(amount_satang),0)::bigint AS amount,
+            COALESCE(sum(cost_satang),0)::bigint AS cost,
+            COALESCE(sum(tax_satang),0)::bigint AS tax
+     FROM refunds
+     WHERE tenant_id=$1 AND store_id=$2 AND business_date BETWEEN $3 AND $4 AND status='completed'`,
+    [tenantId, storeId, previousFrom, previousTo],
+  );
+  const previousTotals = previousTotalsResult.rows[0]!;
+  const previousRefunds = previousRefundsResult.rows[0]!;
+  const previousGross = Number(previousTotals.gross);
+  const previousRefund = Number(previousRefunds.amount);
+  const previousNet = previousGross - previousRefund;
+  const previousTax = Number(previousTotals.tax) - Number(previousRefunds.tax);
+  const previousRevenueExTax = previousNet - previousTax;
+  const previousCogs = Number(previousTotals.cost) - Number(previousRefunds.cost);
+  const previousOrders = Number(previousTotals.orders);
+  const previousKpis = {
+    grossSalesSatang: previousGross,
+    netSalesSatang: previousNet,
+    refundsSatang: previousRefund,
+    taxSatang: previousTax,
+    revenueExTaxSatang: previousRevenueExTax,
+    cogsSatang: previousCogs,
+    grossProfitSatang: previousRevenueExTax - previousCogs,
+    orders: previousOrders,
+    aovSatang: previousOrders > 0 ? divRoundHalfUp(previousNet, previousOrders) : 0,
+    itemsSold: Number(previousTotals.items),
+  };
+
   const trendResult = await client.query<{ date: string; sales: number; orders: number }>(
     `SELECT business_date::text AS date, COALESCE(sum(total_satang),0)::bigint AS sales, count(*)::bigint AS orders
      FROM sales WHERE tenant_id=$1 AND store_id=$2 AND business_date BETWEEN $3 AND $4 AND status <> 'voided'
@@ -189,6 +243,7 @@ export async function salesReport(client: DbClient, scope: ReportScope) {
       aovSatang: orders > 0 ? divRoundHalfUp(netSales, orders) : 0,
       itemsSold: Number(totals.items) - Number(refundQtyResult.rows[0]?.qty ?? 0),
     },
+    previousKpis,
     trend,
     topProducts: topResult.rows.map((r) => ({
       name: r.name,

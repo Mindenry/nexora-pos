@@ -115,7 +115,6 @@ export function printReceipt(receipt: PrintableReceipt): void {
     <hr />
     <div class="row"><span>ยอดรวมสินค้า</span><span>${escapeHtml(thb(receipt.subtotalSatang))}</span></div>
     ${Number(receipt.discountSatang ?? 0) > 0 ? `<div class="row"><span>ส่วนลด</span><span>-${escapeHtml(thb(receipt.discountSatang))}</span></div>` : ''}
-    ${(receipt.appliedPromotions ?? []).map((p) => `<div class="row"><span>${escapeHtml(p.name)}</span><span>-${escapeHtml(thb(p.amountSatang))}</span></div>`).join('')}
     <div class="row"><span>ภาษีมูลค่าเพิ่ม ${((receipt.vatRateBp ?? 700) / 100).toFixed(0)}% ${receipt.pricesIncludeTax === false ? '' : '(รวม)'}</span><span>${escapeHtml(thb(receipt.taxSatang))}</span></div>
     <div class="row total"><span>ยอดสุทธิ</span><span>${escapeHtml(thb(receipt.totalSatang))}</span></div>
     ${payments}

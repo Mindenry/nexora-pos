@@ -45,6 +45,7 @@ export interface QuoteInput {
   taxRateBp: number;
   pricesIncludeTax: boolean;
   memberDiscountBp?: number | null;
+  extraDiscountSatang?: number | null;
 }
 
 export interface QuoteLineResult {
@@ -263,6 +264,10 @@ export function quoteCart(input: QuoteInput): QuoteResult {
   if (input.memberDiscountBp && input.memberDiscountBp > 0) {
     const base = remainingAfterTargeted() - orderLevelTotal;
     addOrderLevel(applyBasisPoints(base, Math.min(input.memberDiscountBp, 5000)));
+  }
+
+  if (input.extraDiscountSatang && input.extraDiscountSatang > 0) {
+    addOrderLevel(input.extraDiscountSatang);
   }
 
   // 3) Allocate order-level discount to lines proportionally.

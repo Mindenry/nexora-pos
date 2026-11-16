@@ -292,6 +292,36 @@ export function platformRoutes(db: Db): Router {
     created(res, row.rows[0]);
   });
 
+  router.patch('/platform/plans/:id', async (req, res) => {
+    const id = uuidSchema.parse(req.params.id);
+    const input = planInputSchema.parse(req.body);
+    const row = await db.queryGlobal(
+      `UPDATE subscription_plans SET
+         code=$1, name=$2, price_satang=$3, interval=$4, features=$5::jsonb,
+         max_stores=$6, max_employees=$7, is_active=$8, updated_at=now()
+       WHERE id=$9
+       RETURNING id, code, name, price_satang, interval, features, max_stores, max_employees, is_active`,
+      [
+        input.code,
+        input.name,
+        input.priceSatang,
+        input.interval,
+        JSON.stringify(input.features),
+        input.maxStores,
+        input.maxEmployees,
+        input.isActive,
+        id,
+      ],
+    );
+    if (!row.rows[0]) throw new NexoraError('NOT_FOUND');
+    await db.queryGlobal(
+      `INSERT INTO audit_logs (tenant_id, actor_user_id, actor_name, action, entity_type, entity_id, after, correlation_id)
+       VALUES (NULL,$1,$2,'platform.plan_updated','subscription_plan',$3,$4::jsonb,$5)`,
+      [req.ctx.user.id, req.ctx.user.name, id, JSON.stringify(input), req.ctx.correlationId],
+    );
+    ok(res, row.rows[0]);
+  });
+
   router.get('/platform/audit', async (req, res) => {
     const query = listQuerySchema.parse(req.query);
     const rows = await db.withPlatformAdmin((client) =>
