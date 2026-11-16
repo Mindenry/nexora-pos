@@ -304,6 +304,7 @@ export function PromptPayPaymentDialog({
   };
 
   const canVerify = can('payments.confirm');
+  const canManageProvider = can('promptpay.providers.manage');
   const showConfirm = confirmStep && !paid && !terminal;
 
   const accountOptions = useMemo(
@@ -437,12 +438,28 @@ export function PromptPayPaymentDialog({
             ) : (
               <div className="flex items-start gap-2 rounded-lg border border-line bg-surface-2 px-3 py-2 text-[10.5px] text-muted">
                 <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-faint" />
-                <span>
-                  {t(
-                    'โหมดยืนยันด้วยพนักงาน: ตรวจยอดเงินในแอปธนาคารก่อนกดยืนยัน',
-                    'Manual mode: check the amount in your banking app before confirming.',
-                  )}
-                </span>
+                <div className="min-w-0 flex-1">
+                  <span>
+                    {session.verificationMode?.configured
+                      ? t(
+                          'มีผู้ให้บริการเชื่อมต่ออยู่ แต่ยังไม่ได้เปิด “ยืนยันอัตโนมัติ” จึงใช้การยืนยันโดยพนักงาน',
+                          'A provider is connected but auto-confirm is off, so staff confirmation is used.',
+                        )
+                      : t(
+                          'โหมดยืนยันด้วยพนักงาน: ยังไม่ได้เชื่อมผู้ให้บริการสำหรับตรวจเงินเข้าอัตโนมัติ',
+                          'Manual mode: no automatic settlement provider is connected.',
+                        )}
+                  </span>
+                  {session.verificationMode?.configured && canManageProvider ? (
+                    <button
+                      type="button"
+                      onClick={onOpenSettings}
+                      className="ml-1 font-medium text-jade underline decoration-jade/40 underline-offset-2"
+                    >
+                      {t('เปิดตั้งค่า', 'Open settings')}
+                    </button>
+                  ) : null}
+                </div>
               </div>
             )
           ) : null}

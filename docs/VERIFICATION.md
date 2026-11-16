@@ -150,6 +150,14 @@ against `max(number)` before accepting traffic post-restore (documented).
   a 2-row category rail; shift modal fits without scrolling the footer.
 - iPad manifest, icons, safe-area padding and 16 px touch inputs verified; the
   app installs to the Home Screen and opens at `/pos` in standalone mode.
+- Receipt redesign verified in sale detail at 1440×1000: branded header,
+  receipt number/date hierarchy, item rows, totals, payment, change, promotions,
+  loyalty and footer. The 80 mm print stylesheet was rewritten to match; a
+  physical thermal print remains unverified.
+- LAN access verified from the PC over `http://192.168.1.107:5173` including
+  `/api/health`, SPA fallback and a login POST with the LAN Origin.
+- PromptPay provider tab shows a one-click **เปิดยืนยันอัตโนมัติ** action when a
+  provider exists but is inactive; activated state and event log verified.
 - 1920×1080: dashboard content stays capped and readable.
 - Customer display checked at 1280×800 and 1024×768 (idle + cart).
 - Dark mode checked on dashboard.

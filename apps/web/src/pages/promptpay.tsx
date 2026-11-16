@@ -935,6 +935,7 @@ function VerificationSettings() {
   });
   const [secret, setSecret] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [rotating, setRotating] = useState(false);
   const [rotateConfirm, setRotateConfirm] = useState(false);
@@ -977,7 +978,7 @@ function VerificationSettings() {
       const result = await promptPayApi.createProvider({
         displayName: form.displayName.trim() || 'Webhook provider',
         autoConfirm: form.autoConfirm,
-        isActive: false,
+        isActive: true,
       });
       setSecret(result.data.secret);
       await refresh();
@@ -1009,6 +1010,23 @@ function VerificationSettings() {
       toast.error(t('บันทึกไม่สำเร็จ', 'Could not save'), errorMessage(error, locale));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const activate = async () => {
+    setActivating(true);
+    try {
+      await promptPayApi.updateProvider({ isActive: true, autoConfirm: true });
+      setForm((prev) => ({ ...prev, isActive: true, autoConfirm: true }));
+      await refresh();
+      toast.success(
+        t('เปิดยืนยันอัตโนมัติแล้ว', 'Automatic confirmation enabled'),
+        t('POS จะตรวจเงินเข้าทุก 4 วินาทีเมื่อมี event จากผู้ให้บริการ', 'The POS now checks every 4 seconds for provider events.'),
+      );
+    } catch (error) {
+      toast.error(t('เปิดใช้งานไม่สำเร็จ', 'Could not activate'), errorMessage(error, locale));
+    } finally {
+      setActivating(false);
     }
   };
 
@@ -1114,6 +1132,34 @@ function VerificationSettings() {
             <Webhook className="h-5 w-5" />
           </span>
         </div>
+
+        {!config.isActive || !config.autoConfirm ? (
+          <div className="mt-3">
+            <InlineAlert tone="warning">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {!config.isActive
+                    ? t(
+                        'ผู้ให้บริการนี้ยังไม่เปิดใช้งาน POS จึงยังใช้การยืนยันโดยพนักงาน',
+                        'This provider is inactive, so the POS still uses staff confirmation.',
+                      )
+                    : t(
+                        'เปิดใช้งานอยู่แต่ปิด “ยืนยันอัตโนมัติ” จึงยังต้องยืนยันโดยพนักงาน',
+                        'The provider is active but auto-confirm is off, so staff confirmation is still required.',
+                      )}
+                </span>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  loading={activating}
+                  onClick={() => void activate()}
+                >
+                  {t('เปิดยืนยันอัตโนมัติ', 'Enable auto-confirm')}
+                </Button>
+              </div>
+            </InlineAlert>
+          </div>
+        ) : null}
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Field label={t('ชื่อผู้ให้บริการ', 'Provider name')}>

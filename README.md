@@ -69,6 +69,7 @@ Wi-Fi and that the router does not enable AP/client isolation.
 | --- | --- |
 | `npm run dev` | API + web in watch mode |
 | `npm run serve:lan` | Build the SPA and serve it on `0.0.0.0:5173` for iPad/LAN testing |
+| `npm run lan` | Serve the existing `apps/web/dist` on the LAN without rebuilding |
 | `npm run build` | Bundle API and build SPA |
 | `npm run typecheck` | Strict TypeScript across workspaces |
 | `npm run lint` | ESLint |

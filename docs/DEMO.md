@@ -85,7 +85,10 @@ The system can auto-detect a payment when a contracted bank/PSP sends a signed
 webhook. It does **not** discover bank transfers by itself.
 
 1. Open **พร้อมเพย์ → ตรวจรับอัตโนมัติ → สร้างปลายทาง Webhook**.
-2. Copy the webhook URL and the `whsec_…` secret (shown once).
+   A new provider starts **active with auto-confirm on**; if an older provider
+   is inactive, press **เปิดยืนยันอัตโนมัติ**.
+2. Copy the webhook URL and the `whsec_…` secret (shown once). If the secret was
+   lost, press **เปลี่ยน secret** to issue a new one.
 3. Configure the provider to POST `payment.received` with
    `x-nexora-timestamp`, `x-nexora-signature` (HMAC-SHA256 of
    `${timestamp}.${rawBody}`) and `x-nexora-event-id`.

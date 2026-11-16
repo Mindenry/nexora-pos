@@ -52,6 +52,7 @@ export interface PromptPaySession {
     mode: 'manual' | 'automatic';
     autoConfirm: boolean;
     displayName: string | null;
+    configured: boolean;
   };
   audit: Array<{
     id: string;

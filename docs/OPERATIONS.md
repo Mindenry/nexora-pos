@@ -90,9 +90,11 @@ browser ── HTTPS ── reverse proxy ── /api → node dist/index.js (AP
 ## iPad / tablet counter setup
 
 0. **Local LAN test:** run the API (`npm run dev:api`), then
-   `npm run serve:lan`. The script builds the SPA and serves it on
-   `0.0.0.0:5173` with `/api` proxied to `127.0.0.1:4000`. Find the PC's IPv4
-   with `ipconfig` and open `http://<IPv4>:5173` on the iPad.
+   `npm run serve:lan`. This builds the SPA and starts the dependency-free
+   `scripts/lan-server.mjs` on `0.0.0.0:5173`, serving `apps/web/dist` and
+   proxying `/api` and `/uploads` to `127.0.0.1:4000`. Find the PC's IPv4 with
+   `ipconfig` and open `http://<IPv4>:5173` on the iPad. Use `npm run lan` to
+   serve an already-built SPA without rebuilding.
    - Allow Node.js or TCP 5173/4000 through Windows Firewall:
      `netsh advfirewall firewall add rule name="NEXORA Web 5173" dir=in action=allow protocol=TCP localport=5173 profile=any`
    - Development/test accepts private-LAN origins for CSRF checks. Add explicit
@@ -100,8 +102,9 @@ browser ── HTTPS ── reverse proxy ── /api → node dist/index.js (AP
    - If the page does not load, confirm both devices are on the same Wi-Fi and
      that the router does not enable AP/client isolation. A `Public` Windows
      network profile is fine only when the firewall rule above exists.
-   - `npm run serve:lan` serves the production build; rebuild after code changes.
-     For hot reload use `npm run dev` with `--host 0.0.0.0` instead.
+   - `npm run serve:lan` serves the production build; rerun it after code
+     changes (or use `npm run lan` when only the backend changed). For hot reload
+     use `npm run dev` with `--host 0.0.0.0` instead.
 1. For production, serve the app over HTTPS on the same origin as `/api`
    (Safari requires a secure origin for full-screen web apps and service
    workers).

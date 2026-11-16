@@ -24,6 +24,7 @@ export interface ProviderVerificationMode {
   mode: 'manual' | 'automatic';
   autoConfirm: boolean;
   displayName: string | null;
+  configured: boolean;
 }
 
 interface ProviderRow {
@@ -105,7 +106,7 @@ export async function createPaymentProvider(
       input.displayName?.trim() || 'Webhook provider',
       publicId,
       encryptSecret(secret),
-      input.isActive ?? false,
+      input.isActive ?? true,
       input.autoConfirm ?? true,
       ctx.user.id,
     ],
@@ -219,13 +220,22 @@ export async function getProviderVerificationMode(
   tenantId: string,
 ): Promise<ProviderVerificationMode> {
   const row = await tenantConfig(client, tenantId);
-  if (!row || !row.is_active) {
-    return { mode: 'manual', autoConfirm: false, displayName: null };
+  if (!row) {
+    return { mode: 'manual', autoConfirm: false, displayName: null, configured: false };
+  }
+  if (!row.is_active) {
+    return {
+      mode: 'manual',
+      autoConfirm: false,
+      displayName: row.display_name,
+      configured: true,
+    };
   }
   return {
     mode: row.auto_confirm ? 'automatic' : 'manual',
     autoConfirm: row.auto_confirm,
     displayName: row.display_name,
+    configured: true,
   };
 }
 
